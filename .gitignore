@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyright/
+
+# Virtual env
+.venv/
+
+# uv
+# uv.lock is committed on purpose
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+!.env.prod.example
+
+# Local deployment inventory, secrets and downloaded Ansible collections.
+deploy/ansible/inventory/hosts.ini
+deploy/ansible/inventory/group_vars/falcoria.yml
+deploy/ansible/inventory/group_vars/vault.yml
+deploy/ansible/.vault-pass
+deploy/ansible/collections/
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
+
+# Refactor working area — scratch planning notes, not tracked.
+# ADRs from refactor/decisions/ move into docs/decisions/ when docs/ is brought in.
+/refactor/

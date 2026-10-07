@@ -1,0 +1,100 @@
+"""FastAPI application factory and ASGI entry point."""
+
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+
+from falcoria_logging import configure_logging
+from fastapi import Depends, FastAPI
+
+from falcoria_scanledger.auth.dependencies import require_admin, require_user
+from falcoria_scanledger.auth.router import router as auth_router
+from falcoria_scanledger.auth.service import ensure_primary_users
+from falcoria_scanledger.config import Env, get_app_settings
+from falcoria_scanledger.constants import AUTH_RESPONSES, Tag
+from falcoria_scanledger.database import dispose_engine, get_sessionmaker
+from falcoria_scanledger.events.router import router as events_router
+from falcoria_scanledger.exceptions import register_exception_handlers
+from falcoria_scanledger.history.router import router as history_router
+from falcoria_scanledger.ips.router import router as ips_router
+from falcoria_scanledger.projects.dependencies import validate_project_access
+from falcoria_scanledger.projects.router import router as projects_router
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
+    """Seeds the service accounts on startup, disposes the engine on exit.
+
+    The schema is owned by Alembic — run ``alembic upgrade head`` before starting
+    the process; the app never issues DDL.
+    """
+    settings = get_app_settings()
+    async with get_sessionmaker()() as session:
+        await ensure_primary_users(
+            session,
+            admin_token=settings.admin_token.get_secret_value(),
+            tasker_token=settings.tasker_token.get_secret_value(),
+            worker_token=settings.worker_token.get_secret_value(),
+            asm_token=settings.asm_token.get_secret_value() if settings.asm_token else None,
+        )
+        await session.commit()
+    yield
+    await dispose_engine()
+
+
+def create_app() -> FastAPI:
+    """Builds the scanledger FastAPI application."""
+    settings = get_app_settings()
+    configure_logging(level=settings.log_level, json_output=settings.env is not Env.LOCAL)
+    hide_docs = settings.env is Env.PROD
+    app = FastAPI(
+        title="scanledger",
+        debug=settings.debug,
+        lifespan=lifespan,
+        docs_url=None if hide_docs else "/docs",
+        redoc_url=None if hide_docs else "/redoc",
+        openapi_url=None if hide_docs else "/openapi.json",
+    )
+    register_exception_handlers(app)
+
+    app.include_router(
+        auth_router,
+        prefix=settings.api_prefix,
+        dependencies=[Depends(require_admin)],
+        responses=AUTH_RESPONSES,
+    )
+    app.include_router(
+        projects_router,
+        prefix=settings.api_prefix,
+        dependencies=[Depends(require_user)],
+        responses=AUTH_RESPONSES,
+    )
+    # ips is its own package, not a subpackage of projects; project_id in the
+    # path only scopes it. validate_project_access already requires a user.
+    app.include_router(
+        ips_router,
+        prefix=f"{settings.api_prefix}/projects/{{project_id}}/ips",
+        dependencies=[Depends(validate_project_access)],
+        responses=AUTH_RESPONSES,
+    )
+    app.include_router(
+        history_router,
+        prefix=f"{settings.api_prefix}/projects/{{project_id}}/history",
+        dependencies=[Depends(validate_project_access)],
+        responses=AUTH_RESPONSES,
+    )
+    app.include_router(
+        events_router,
+        prefix=f"{settings.api_prefix}/projects/{{project_id}}/events",
+        dependencies=[Depends(validate_project_access)],
+        responses=AUTH_RESPONSES,
+    )
+
+    @app.get("/health", tags=[Tag.META])
+    async def health() -> dict[str, str]:
+        """Reports that the process is up. Runs no dependency checks."""
+        return {"status": "ok"}
+
+    return app
+
+
+app = create_app()
