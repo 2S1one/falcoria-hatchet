@@ -1,0 +1,133 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.python-version'
+      - 'conftest.py'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.python-version'
+      - 'conftest.py'
+      - '.github/workflows/ci.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.10.4"
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run ruff format --check .
+      - run: uv run ruff check .
+      - run: uv run pyright
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.10.4"
+          enable-cache: true
+      - run: uv sync --locked
+      # Tests that need a real database or a real Hatchet engine run separately or not at all.
+      - run: uv run pytest -m "not postgres and not hatchet"
+
+  test-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: scanledger
+          POSTGRES_PASSWORD: scanledger
+          POSTGRES_DB: scanledger
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U scanledger -d scanledger"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      SCANLEDGER_DB_HOST: localhost
+      SCANLEDGER_DB_PORT: "5432"
+      SCANLEDGER_DB_USER: scanledger
+      SCANLEDGER_DB_PASSWORD: scanledger
+      SCANLEDGER_DB_NAME: scanledger
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.10.4"
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run pytest -m "postgres and not hatchet"
+
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      docker_apps: ${{ steps.filter.outputs.changes }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        id: filter
+        with:
+          # Keep each app's list in sync with its apps/*/pyproject.toml dependencies on falcoria-*:
+          # an app only rebuilds when its own code, a package it actually depends on, its
+          # Dockerfile, or the lockfile/root manifest changes. Adding a dependency on a new
+          # shared package (or dropping one) means updating the matching list below too.
+          filters: |
+            scanledger:
+              - 'pyproject.toml'
+              - 'uv.lock'
+              - 'packages/falcoria-contracts/**'
+              - 'packages/falcoria-logging/**'
+              - 'apps/scanledger/**'
+            tasker:
+              - 'pyproject.toml'
+              - 'uv.lock'
+              - 'packages/falcoria-contracts/**'
+              - 'packages/falcoria-http/**'
+              - 'packages/falcoria-logging/**'
+              - 'apps/tasker/**'
+            worker:
+              - 'pyproject.toml'
+              - 'uv.lock'
+              - 'packages/falcoria-contracts/**'
+              - 'packages/falcoria-http/**'
+              - 'packages/falcoria-logging/**'
+              - 'apps/worker/**'
+
+  docker-build-check:
+    needs: changes
+    if: needs.changes.outputs.docker_apps != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: ${{ fromJSON(needs.changes.outputs.docker_apps) }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Verify Dockerfile builds cleanly
+        run: docker build -f apps/${{ matrix.app }}/Dockerfile .
