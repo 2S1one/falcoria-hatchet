@@ -33,4 +33,5 @@ deploy/ansible/collections/
 
 # Refactor working area — scratch planning notes, not tracked.
 # ADRs from refactor/decisions/ move into docs/decisions/ when docs/ is brought in.
-/refactor/
+/falcoria/refactor/
+/asm/refactor/

@@ -1,0 +1,134 @@
+name: CI (asm)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'asm/apps/**'
+      - 'asm/packages/**'
+      - 'asm/pyproject.toml'
+      - 'asm/uv.lock'
+      - 'asm/.python-version'
+      - '.github/workflows/asm-ci.yml'
+  pull_request:
+    paths:
+      - 'asm/apps/**'
+      - 'asm/packages/**'
+      - 'asm/pyproject.toml'
+      - 'asm/uv.lock'
+      - 'asm/.python-version'
+      - '.github/workflows/asm-ci.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: asm
+
+jobs:
+  lint-and-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.10.4"
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run ruff format --check .
+      - run: uv run ruff check .
+      - run: uv run pyright
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.10.4"
+          enable-cache: true
+      - run: uv sync --locked
+      # Tests that need a real database or a real Hatchet engine run separately or not at all.
+      - run: uv run pytest -m "not postgres and not hatchet"
+
+  test-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: asm_core
+          POSTGRES_PASSWORD: asm_core
+          POSTGRES_DB: asm_core_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U asm_core -d asm_core_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      ASM_CORE_DB_HOST: localhost
+      ASM_CORE_DB_PORT: "5432"
+      ASM_CORE_DB_USER: asm_core
+      ASM_CORE_DB_PASSWORD: asm_core
+      ASM_CORE_DB_NAME: asm_core_test
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.10.4"
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run pytest -m postgres
+
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      docker_apps: ${{ steps.filter.outputs.changes }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        id: filter
+        with:
+          # Keep each app's list in sync with its apps/*/pyproject.toml dependencies on asm-*:
+          # an app only rebuilds when its own code, a package it actually depends on, its
+          # Dockerfile, or the lockfile/root manifest changes. Adding a dependency on a new
+          # shared package (or dropping one) means updating the matching list below too.
+          filters: |
+            httpx-worker:
+              - 'asm/pyproject.toml'
+              - 'asm/uv.lock'
+              - 'asm/packages/asm-contracts/**'
+              - 'asm/packages/asm-logging/**'
+              - 'asm/apps/httpx-worker/**'
+            nuclei-worker:
+              - 'asm/pyproject.toml'
+              - 'asm/uv.lock'
+              - 'asm/packages/asm-contracts/**'
+              - 'asm/packages/asm-execution/**'
+              - 'asm/packages/asm-logging/**'
+              - 'asm/apps/nuclei-worker/**'
+            asm-core:
+              - 'asm/pyproject.toml'
+              - 'asm/uv.lock'
+              - 'asm/packages/asm-contracts/**'
+              - 'asm/packages/asm-logging/**'
+              - 'asm/apps/asm-core/**'
+
+  docker-build-check:
+    needs: changes
+    if: needs.changes.outputs.docker_apps != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: ${{ fromJSON(needs.changes.outputs.docker_apps) }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Verify Dockerfile builds cleanly
+        run: docker build -f apps/${{ matrix.app }}/Dockerfile .

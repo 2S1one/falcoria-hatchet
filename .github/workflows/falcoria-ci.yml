@@ -1,25 +1,25 @@
-name: CI
+name: CI (falcoria)
 
 on:
   push:
     branches: [main]
     paths:
-      - 'apps/**'
-      - 'packages/**'
-      - 'pyproject.toml'
-      - 'uv.lock'
-      - '.python-version'
-      - 'conftest.py'
-      - '.github/workflows/ci.yml'
+      - 'falcoria/apps/**'
+      - 'falcoria/packages/**'
+      - 'falcoria/pyproject.toml'
+      - 'falcoria/uv.lock'
+      - 'falcoria/.python-version'
+      - 'falcoria/conftest.py'
+      - '.github/workflows/falcoria-ci.yml'
   pull_request:
     paths:
-      - 'apps/**'
-      - 'packages/**'
-      - 'pyproject.toml'
-      - 'uv.lock'
-      - '.python-version'
-      - 'conftest.py'
-      - '.github/workflows/ci.yml'
+      - 'falcoria/apps/**'
+      - 'falcoria/packages/**'
+      - 'falcoria/pyproject.toml'
+      - 'falcoria/uv.lock'
+      - 'falcoria/.python-version'
+      - 'falcoria/conftest.py'
+      - '.github/workflows/falcoria-ci.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -27,6 +27,10 @@ concurrency:
 
 permissions:
   contents: read
+
+defaults:
+  run:
+    working-directory: falcoria
 
 jobs:
   lint-and-typecheck:
@@ -100,25 +104,25 @@ jobs:
           # shared package (or dropping one) means updating the matching list below too.
           filters: |
             scanledger:
-              - 'pyproject.toml'
-              - 'uv.lock'
-              - 'packages/falcoria-contracts/**'
-              - 'packages/falcoria-logging/**'
-              - 'apps/scanledger/**'
+              - 'falcoria/pyproject.toml'
+              - 'falcoria/uv.lock'
+              - 'falcoria/packages/falcoria-contracts/**'
+              - 'falcoria/packages/falcoria-logging/**'
+              - 'falcoria/apps/scanledger/**'
             tasker:
-              - 'pyproject.toml'
-              - 'uv.lock'
-              - 'packages/falcoria-contracts/**'
-              - 'packages/falcoria-http/**'
-              - 'packages/falcoria-logging/**'
-              - 'apps/tasker/**'
+              - 'falcoria/pyproject.toml'
+              - 'falcoria/uv.lock'
+              - 'falcoria/packages/falcoria-contracts/**'
+              - 'falcoria/packages/falcoria-http/**'
+              - 'falcoria/packages/falcoria-logging/**'
+              - 'falcoria/apps/tasker/**'
             worker:
-              - 'pyproject.toml'
-              - 'uv.lock'
-              - 'packages/falcoria-contracts/**'
-              - 'packages/falcoria-http/**'
-              - 'packages/falcoria-logging/**'
-              - 'apps/worker/**'
+              - 'falcoria/pyproject.toml'
+              - 'falcoria/uv.lock'
+              - 'falcoria/packages/falcoria-contracts/**'
+              - 'falcoria/packages/falcoria-http/**'
+              - 'falcoria/packages/falcoria-logging/**'
+              - 'falcoria/apps/worker/**'
 
   docker-build-check:
     needs: changes

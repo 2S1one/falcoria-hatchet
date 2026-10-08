@@ -20,7 +20,25 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [scanledger, tasker, worker]
+        include:
+          - system: falcoria
+            app: scanledger
+            image: falcoria-scanledger
+          - system: falcoria
+            app: tasker
+            image: falcoria-tasker
+          - system: falcoria
+            app: worker
+            image: falcoria-worker
+          - system: asm
+            app: httpx-worker
+            image: asm-httpx-worker
+          - system: asm
+            app: nuclei-worker
+            image: asm-nuclei-worker
+          - system: asm
+            app: asm-core
+            image: asm-core
     steps:
       - uses: actions/checkout@v7
 
@@ -38,7 +56,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/falcoria-${{ matrix.app }}
+          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -49,8 +67,8 @@ jobs:
         id: push
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: apps/${{ matrix.app }}/Dockerfile
+          context: ${{ matrix.system }}
+          file: ${{ matrix.system }}/apps/${{ matrix.app }}/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -59,4 +77,4 @@ jobs:
 
       - name: Record image digest
         run: |
-          echo "${{ matrix.app }}: \`${{ steps.push.outputs.digest }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "${{ matrix.image }}: \`${{ steps.push.outputs.digest }}\`" >> "$GITHUB_STEP_SUMMARY"
