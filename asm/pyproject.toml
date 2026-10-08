@@ -1,0 +1,76 @@
+# Virtual workspace root — not a package itself.
+
+[tool.uv.workspace]
+members = ["packages/*", "apps/*"]
+
+[tool.uv.sources]
+asm-contracts = { workspace = true }
+asm-execution = { workspace = true }
+asm-logging = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14,<0.15",
+    "pyright>=1.1.414",
+    "pytest>=9.1.1",
+    "anyio>=4",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+preview = false
+
+[tool.ruff.lint]
+select = [
+    "F", "E", "W", "I", "UP", "B", "C4", "N", "RUF", "PIE",
+    "PGH004", "S", "PTH", "PT", "PLE", "DTZ", "SIM", "TID252", "D",
+]
+ignore = [
+    "E501",                                  # wrapping delegated to the formatter
+    "SIM108",                                # ternary rewrite often hurts readability
+    "COM812", "ISC001",                      # conflict with ruff format
+    "D100", "D104", "D105", "D106", "D107",  # docstrings: public surface only
+]
+unfixable = ["F401", "F841"]                 # don't let --fix delete work-in-progress
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**"    = ["S101", "S105", "S106", "D"]
+"**/__init__.py" = ["F401"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["asm_contracts", "asm_core", "asm_execution", "asm_httpx_worker", "asm_logging", "asm_nuclei_worker"]
+combine-as-imports = true
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "parents"
+
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = false
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+docstring-code-format = true
+skip-magic-trailing-comma = false
+
+[tool.pyright]
+pythonVersion = "3.12"
+typeCheckingMode = "standard"
+include = ["packages", "apps"]
+exclude = ["**/.venv", "**/__pycache__"]
+venvPath = "."
+venv = ".venv"
+
+[tool.pytest.ini_options]
+addopts = ["-ra", "--strict-markers", "--strict-config", "--import-mode=importlib"]
+pythonpath = ["apps/httpx-worker/tests"]
+testpaths = ["packages", "apps"]
+markers = [
+    "postgres: requires a real Postgres (ASM_CORE_DB_* in the environment; uses the asm_core_test database)",
+    "hatchet: requires a real Hatchet engine",
+]

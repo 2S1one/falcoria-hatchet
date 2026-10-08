@@ -1,0 +1,22 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyright/
+.venv/
+.env
+.env.*
+!.env.example
+.idea/
+.vscode/
+.DS_Store
+.git/
+
+# Documentation, repo metadata and tests (never copied to the runtime image)
+docs/
+**/*.md
+**/tests/
+.github/
+.gitignore
