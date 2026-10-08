@@ -1,0 +1,11 @@
+# Full stack on one machine for development and manual checks. Images are built from source.
+#
+# Infrastructure always starts. Pick the systems with profiles:
+#   docker compose -f deploy/compose.test.yml --profile falcoria --profile asm up -d
+# Only the infrastructure:  docker compose -f deploy/compose.test.yml up -d
+name: falcoria-test
+
+include:
+  - compose.infra.yml
+  - ../falcoria/compose.yml
+  - ../asm/compose.yml

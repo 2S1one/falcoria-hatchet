@@ -1,0 +1,103 @@
+# falcoria services. Not runnable alone: it expects the `postgres`, `hatchet-engine` and
+# `hatchet-dashboard` services of deploy/compose.infra.yml. Start it through
+# deploy/compose.test.yml with `--profile falcoria`.
+x-scanledger-db: &scanledger-db
+  SCANLEDGER_DB_HOST: postgres
+  SCANLEDGER_DB_USER: scanledger
+  SCANLEDGER_DB_PASSWORD: ${SCANLEDGER_DB_PASSWORD:-scanledger-dev}
+  SCANLEDGER_DB_NAME: scanledger
+
+x-hatchet-client: &worker-hatchet
+  WORKER_HATCHET_TOKEN: ${HATCHET_TOKEN:-}
+  WORKER_HATCHET_HOST_PORT: hatchet-engine:7070
+  WORKER_HATCHET_TLS_STRATEGY: none
+
+services:
+  scanledger-migrate:
+    profiles: [falcoria]
+    image: ${SCANLEDGER_IMAGE:-falcoria-scanledger:dev}
+    build:
+      context: .
+      dockerfile: apps/scanledger/Dockerfile
+    command: ["alembic", "-c", "apps/scanledger/alembic.ini", "upgrade", "head"]
+    restart: "no"
+    environment: *scanledger-db
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  scanledger:
+    profiles: [falcoria]
+    image: ${SCANLEDGER_IMAGE:-falcoria-scanledger:dev}
+    build:
+      context: .
+      dockerfile: apps/scanledger/Dockerfile
+    restart: on-failure
+    ports:
+      - "${SCANLEDGER_PORT:-8101}:8000"
+    environment:
+      <<: *scanledger-db
+      WEB_CONCURRENCY: "1"
+      # The four tokens must differ; each client service below reads its own.
+      SCANLEDGER_ADMIN_TOKEN: ${SCANLEDGER_ADMIN_TOKEN:-admin-token-dev}
+      SCANLEDGER_TASKER_TOKEN: ${SCANLEDGER_TASKER_TOKEN:-tasker-token-dev}
+      SCANLEDGER_WORKER_TOKEN: ${SCANLEDGER_WORKER_TOKEN:-worker-token-dev}
+      SCANLEDGER_ASM_TOKEN: ${SCANLEDGER_ASM_TOKEN:-asm-token-dev}
+    depends_on:
+      scanledger-migrate:
+        condition: service_completed_successfully
+
+  tasker:
+    profiles: [falcoria]
+    image: ${TASKER_IMAGE:-falcoria-tasker:dev}
+    build:
+      context: .
+      dockerfile: apps/tasker/Dockerfile
+    restart: on-failure
+    ports:
+      - "${TASKER_PORT:-8102}:8000"
+    environment:
+      WEB_CONCURRENCY: "1"
+      TASKER_SCANLEDGER_BASE_URL: http://scanledger:8000/api
+      TASKER_SCANLEDGER_TOKEN: ${SCANLEDGER_TASKER_TOKEN:-tasker-token-dev}
+      TASKER_HATCHET_TOKEN: ${HATCHET_TOKEN:-}
+      TASKER_HATCHET_HOST_PORT: hatchet-engine:7070
+      TASKER_HATCHET_TLS_STRATEGY: none
+      # The token carries the engine's public REST address; inside the network it is this one.
+      HATCHET_CLIENT_SERVER_URL: http://hatchet-dashboard:80
+    depends_on:
+      - scanledger
+      - hatchet-engine
+      - hatchet-dashboard
+
+  # nmap runner. Needs raw-socket capabilities; see apps/worker/Dockerfile.
+  scanner:
+    profiles: [falcoria]
+    image: ${WORKER_IMAGE:-falcoria-worker:dev}
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    command: ["falcoria-scanner"]
+    restart: on-failure
+    cap_add: [NET_RAW, NET_ADMIN]
+    environment:
+      <<: *worker-hatchet
+    depends_on:
+      - hatchet-engine
+
+  # Sends finished nmap reports to scanledger.
+  uploader:
+    profiles: [falcoria]
+    image: ${WORKER_IMAGE:-falcoria-worker:dev}
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    command: ["falcoria-uploader"]
+    restart: on-failure
+    environment:
+      <<: *worker-hatchet
+      WORKER_SCANLEDGER_BASE_URL: http://scanledger:8000/api
+      WORKER_SCANLEDGER_TOKEN: ${SCANLEDGER_WORKER_TOKEN:-worker-token-dev}
+    depends_on:
+      - scanledger
+      - hatchet-engine

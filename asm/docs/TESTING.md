@@ -14,7 +14,7 @@ Markers: `postgres` and `hatchet`. No test is marked `hatchet`; the marker is de
 The `session` fixture in `apps/asm-core/tests/conftest.py`:
 - skips the test when `ASM_CORE_DB_HOST` is unset;
 - overrides `ASM_CORE_DB_NAME` with `asm_core_test`, clears the cached settings, engine and session factory, creates the tables, then `TRUNCATE`s the four tables listed in `_TABLES`;
-- needs the role to be allowed to connect to `asm_core_test`. The fixture does not create the database. [TODO: confirm how `asm_core_test` is created on a fresh server]
+- needs the database `asm_core_test` to exist and its role to connect. The fixture does not create it; `deploy/postgres-init/01-create-databases.sh` does on a fresh compose stack.
 
 A new table must be added to `_TABLES`, or its rows survive between tests.
 

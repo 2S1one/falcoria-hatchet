@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# Build from the repository root: docker build -f apps/worker/Dockerfile .
+# Build from the falcoria/ directory: docker build -f apps/worker/Dockerfile .
 # One image, two roles; pick one with the container command:
 #   falcoria-scanner    nmap runner, one scan at a time (default; needs the capabilities below)
 #   falcoria-uploader   uploads scan reports to scanledger (control plane; does not use nmap)

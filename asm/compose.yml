@@ -1,0 +1,86 @@
+# asm services. Not runnable alone: it expects the `postgres` and `hatchet-engine` services of
+# deploy/compose.infra.yml and, for the bridge, the falcoria `scanledger`. Start it through
+# deploy/compose.test.yml with `--profile asm`.
+x-asm-db: &asm-db
+  ASM_CORE_DB_HOST: postgres
+  ASM_CORE_DB_USER: asm_core
+  ASM_CORE_DB_PASSWORD: ${ASM_CORE_DB_PASSWORD:-asm-core-dev}
+  ASM_CORE_DB_NAME: asm_core
+
+x-hatchet-client: &hatchet-client
+  HATCHET_CLIENT_TOKEN: ${HATCHET_TOKEN:-}
+  HATCHET_CLIENT_HOST_PORT: hatchet-engine:7070
+  HATCHET_CLIENT_TLS_STRATEGY: none
+
+x-asm-core: &asm-core
+  profiles: [asm]
+  image: ${ASM_CORE_IMAGE:-asm-core:dev}
+  build:
+    context: .
+    dockerfile: apps/asm-core/Dockerfile
+  restart: on-failure
+
+services:
+  # Hosts httpx-then-nuclei, httpx-scan-and-store and persist-nuclei-findings.
+  asm-worker:
+    <<: *asm-core
+    environment:
+      <<: [*asm-db, *hatchet-client]
+      # Light templates and a low rate: safe for hosts you do not own. Change deliberately.
+      ASM_CORE_CHAIN_NUCLEI_PARAMS: '{"templates":["/home/appuser/nuclei-templates/http/technologies"],"protocol_types":["http"],"rate_limit":20}'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      hatchet-engine:
+        condition: service_started
+
+  asm-api:
+    <<: *asm-core
+    command: ["uvicorn", "asm_core.app:fastapi_app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "${ASM_API_PORT:-8103}:8000"
+    environment:
+      <<: [*asm-db, *hatchet-client]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      hatchet-engine:
+        condition: service_started
+
+  # Polls scanledger's event feed and starts httpx-then-nuclei runs. Needs falcoria's scanledger.
+  asm-bridge:
+    <<: *asm-core
+    command: ["python", "-m", "asm_core.bridge_main"]
+    environment:
+      <<: [*asm-db, *hatchet-client]
+      SCANLEDGER_API_URL: http://scanledger:8000/api
+      SCANLEDGER_ASM_TOKEN: ${SCANLEDGER_ASM_TOKEN:-asm-token-dev}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      hatchet-engine:
+        condition: service_started
+
+  httpx-worker:
+    profiles: [asm]
+    image: ${ASM_HTTPX_WORKER_IMAGE:-asm-httpx-worker:dev}
+    build:
+      context: .
+      dockerfile: apps/httpx-worker/Dockerfile
+    restart: on-failure
+    environment:
+      <<: *hatchet-client
+    depends_on:
+      - hatchet-engine
+
+  nuclei-worker:
+    profiles: [asm]
+    image: ${ASM_NUCLEI_WORKER_IMAGE:-asm-nuclei-worker:dev}
+    build:
+      context: .
+      dockerfile: apps/nuclei-worker/Dockerfile
+    restart: on-failure
+    environment:
+      <<: *hatchet-client
+    depends_on:
+      - hatchet-engine

@@ -11,7 +11,7 @@ A network-scanning platform on one self-hosted Hatchet engine, made of two syste
 |---|---|---|
 | `falcoria/` | falcoria | Port scanning with nmap. `scanledger` stores results and serves an event feed; `tasker` starts and tracks scans; `worker` runs nmap and uploads reports. |
 | `asm/` | asm-core | Reads the scanledger event feed, probes new HTTP ports with httpx, scans them with nuclei, stores findings in its own database. |
-| `deploy/` | deployment | Compose files and environment templates for both systems. Not created yet. |
+| `deploy/` | deployment | Compose files and environment templates for both systems; see `deploy/README.md`. Test stack only so far. |
 | `docs/` | shared docs | Documentation that covers both systems. Per-system docs live in `falcoria/docs/` and `asm/docs/`. |
 
 ## Isolation between systems

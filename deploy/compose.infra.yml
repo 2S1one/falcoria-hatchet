@@ -1,0 +1,125 @@
+# Infrastructure shared by falcoria and asm: the Hatchet engine with its own database and
+# message queue, and one PostgreSQL instance that holds the application databases.
+# Included by compose.test.yml. Values come from deploy/.env (see .env.example).
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:-postgres-dev}
+      # Read by postgres-init/01-create-databases.sh on the first start only.
+      SCANLEDGER_DB_PASSWORD: ${SCANLEDGER_DB_PASSWORD:-scanledger-dev}
+      ASM_CORE_DB_PASSWORD: ${ASM_CORE_DB_PASSWORD:-asm-core-dev}
+    ports:
+      - "${POSTGRES_PORT:-5436}:5432"
+    volumes:
+      - app_postgres_data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  hatchet-postgres:
+    image: postgres:15.6
+    command: postgres -c 'max_connections=500'
+    environment:
+      POSTGRES_USER: hatchet
+      POSTGRES_PASSWORD: ${HATCHET_DB_PASSWORD:-hatchet-dev}
+      POSTGRES_DB: hatchet
+    volumes:
+      - hatchet_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d hatchet -U hatchet"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    environment:
+      RABBITMQ_DEFAULT_USER: hatchet
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-rabbitmq-dev}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  hatchet-migration:
+    image: ghcr.io/hatchet-dev/hatchet/hatchet-migrate:${HATCHET_VERSION:-v0.110.5}
+    command: /hatchet/hatchet-migrate
+    environment:
+      DATABASE_URL: postgres://hatchet:${HATCHET_DB_PASSWORD:-hatchet-dev}@hatchet-postgres:5432/hatchet
+    depends_on:
+      hatchet-postgres:
+        condition: service_healthy
+
+  # Generates the engine config into a volume on the first start; also used to create tokens.
+  hatchet-setup:
+    image: ghcr.io/hatchet-dev/hatchet/hatchet-admin:${HATCHET_VERSION:-v0.110.5}
+    command: /hatchet/hatchet-admin quickstart --skip certs --generated-config-dir /hatchet/config --overwrite=false
+    environment:
+      DATABASE_URL: postgres://hatchet:${HATCHET_DB_PASSWORD:-hatchet-dev}@hatchet-postgres:5432/hatchet
+      SERVER_MSGQUEUE_RABBITMQ_URL: amqp://hatchet:${RABBITMQ_PASSWORD:-rabbitmq-dev}@rabbitmq:5672/
+      SERVER_AUTH_COOKIE_DOMAIN: localhost:${HATCHET_DASHBOARD_PORT:-8088}
+      SERVER_AUTH_COOKIE_INSECURE: "t"
+      SERVER_GRPC_BIND_ADDRESS: "0.0.0.0"
+      SERVER_GRPC_INSECURE: "t"
+      SERVER_GRPC_BROADCAST_ADDRESS: hatchet-engine:7070
+      SERVER_INTERNAL_CLIENT_INTERNAL_GRPC_BROADCAST_ADDRESS: hatchet-engine:7070
+    volumes:
+      - hatchet_config:/hatchet/config
+    depends_on:
+      hatchet-migration:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+      hatchet-postgres:
+        condition: service_healthy
+
+  hatchet-engine:
+    image: ghcr.io/hatchet-dev/hatchet/hatchet-engine:${HATCHET_VERSION:-v0.110.5}
+    command: /hatchet/hatchet-engine --config /hatchet/config
+    restart: on-failure
+    depends_on:
+      hatchet-setup:
+        condition: service_completed_successfully
+      hatchet-migration:
+        condition: service_completed_successfully
+    ports:
+      - "${HATCHET_GRPC_PORT:-7070}:7070"
+    environment:
+      DATABASE_URL: postgres://hatchet:${HATCHET_DB_PASSWORD:-hatchet-dev}@hatchet-postgres:5432/hatchet
+      SERVER_GRPC_BIND_ADDRESS: "0.0.0.0"
+      SERVER_GRPC_INSECURE: "t"
+      SERVER_LOGGER_LEVEL: ${HATCHET_LOG_LEVEL:-warn}
+    volumes:
+      - hatchet_config:/hatchet/config
+
+  # The REST API and web interface. Tasker reads run statuses through its REST API.
+  hatchet-dashboard:
+    image: ghcr.io/hatchet-dev/hatchet/hatchet-dashboard:${HATCHET_VERSION:-v0.110.5}
+    command: sh ./entrypoint.sh --config /hatchet/config
+    restart: on-failure
+    depends_on:
+      hatchet-setup:
+        condition: service_completed_successfully
+      hatchet-migration:
+        condition: service_completed_successfully
+    ports:
+      - "${HATCHET_DASHBOARD_PORT:-8088}:80"
+    environment:
+      DATABASE_URL: postgres://hatchet:${HATCHET_DB_PASSWORD:-hatchet-dev}@hatchet-postgres:5432/hatchet
+      GRPC_ENABLE_TXT_SERVICE_CONFIG: "false"
+    volumes:
+      - hatchet_config:/hatchet/config
+
+volumes:
+  app_postgres_data:
+  hatchet_postgres_data:
+  rabbitmq_data:
+  hatchet_config:

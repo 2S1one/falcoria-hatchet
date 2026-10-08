@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# Build from the repository root: docker build -f apps/httpx-worker/Dockerfile .
+# Build from the asm/ directory: docker build -f apps/httpx-worker/Dockerfile .
 FROM python:3.12-slim AS builder
 
 COPY --from=ghcr.io/astral-sh/uv:0.10.4 /uv /uvx /bin/

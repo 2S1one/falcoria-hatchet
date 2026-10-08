@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# Build from the repository root: docker build -f apps/nuclei-worker/Dockerfile .
+# Build from the asm/ directory: docker build -f apps/nuclei-worker/Dockerfile .
 # linux/amd64 only: the nuclei release archive below is the amd64 build.
 FROM python:3.12-slim AS nuclei
 

@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# Build from the repository root: docker build -f apps/asm-core/Dockerfile .
+# Build from the asm/ directory: docker build -f apps/asm-core/Dockerfile .
 # One image, three entry points; pick one with the container command:
 #   python -m asm_core.main                                   Hatchet worker: chain and findings storage (default)
 #   uvicorn asm_core.app:fastapi_app --host 0.0.0.0 --port 8000   REST API
