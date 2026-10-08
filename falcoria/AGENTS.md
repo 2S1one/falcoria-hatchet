@@ -167,6 +167,21 @@ uv run pyright
 uv run pytest
 ```
 
+## Containers
+
+`compose.yml` in this directory describes the falcoria services under the profile `falcoria`:
+`scanledger-migrate` (one-off migrations), `scanledger`, `tasker`, `scanner`, `uploader`. The
+Dockerfiles are in `apps/*/Dockerfile`; build from this directory.
+
+- The file does not run alone. It refers to `postgres`, `hatchet-engine` and `hatchet-dashboard`
+  from `deploy/compose.infra.yml`. Start it through
+  `deploy/compose.test.yml --profile falcoria`; see `deploy/README.md`.
+- A new app: add its Dockerfile, its service here with the profile `falcoria`, its entry in the
+  filter and the matrix of `.github/workflows/falcoria-ci.yml` and `falcoria-publish.yml`.
+  `docs/CONTAINERS.md` (repo root) has the steps.
+- Ask first: renaming a service, changing a profile, or changing an environment variable that
+  `deploy/.env.example` documents. Other services and the asm system read these names.
+
 ## Documentation
 
 `docs/` is a generated navigation map for agents (and humans): one master index

@@ -99,6 +99,24 @@ uv run pytest -m "not postgres and not hatchet"
 
 Run `uv run pytest -m postgres` too when a change touches `db/` or `persistence/`.
 
+## Containers
+
+`compose.yml` in this directory describes the asm services under the profile `asm`: `asm-worker`,
+`asm-api`, `asm-bridge` (three commands of the one `asm-core` image), `httpx-worker`,
+`nuclei-worker`. The Dockerfiles are in `apps/*/Dockerfile`; build from this directory.
+
+- The file does not run alone. It refers to `postgres` and `hatchet-engine` from
+  `deploy/compose.infra.yml`, and `asm-bridge` needs falcoria's `scanledger`. Start it through
+  `deploy/compose.test.yml --profile asm` (add `--profile falcoria` for the bridge); see
+  `deploy/README.md`.
+- A new app: add its Dockerfile, its service here with the profile `asm`, its entry in the filter
+  and the matrix of `.github/workflows/asm-ci.yml` and `asm-publish.yml`. `docs/CONTAINERS.md`
+  (repo root) has the steps.
+- The test stack passes light nuclei parameters in `ASM_CORE_CHAIN_NUCLEI_PARAMS` (light templates,
+  20 requests per second). Do not widen them for hosts you do not own.
+- Ask first: renaming a service, changing a profile, or changing an environment variable that
+  `deploy/.env.example` documents.
+
 ## Documentation
 
 `docs/` is a generated navigation map for agents (and humans): one master index
