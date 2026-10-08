@@ -35,3 +35,6 @@ deploy/ansible/collections/
 # ADRs from refactor/decisions/ move into docs/decisions/ when docs/ is brought in.
 /falcoria/refactor/
 /asm/refactor/
+
+# Local notes: open questions and todo. Not part of the repository.
+/notes/
