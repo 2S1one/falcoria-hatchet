@@ -19,6 +19,8 @@ Produce or refresh `docs/` for the current repository: a small master index plus
 
 If no path is given, use `.`. Do not ask the user for a path.
 
+In a repository with several independent systems, run the skill from the system's own directory (for example `cd asm && claude`). Every path below is relative to the current directory, and every git command is limited to it with `--relative` or `-- .`, so changes in a sibling system never count as drift.
+
 ---
 
 ## Style rules (mandatory, every file this skill writes)
@@ -95,7 +97,7 @@ find . -maxdepth 3 -type d \
 for f in README.md pyproject.toml package.json go.mod Cargo.toml compose*.yaml Makefile; do
   [ -f "$f" ] && echo "=== $f ===" && cat "$f"
 done
-git log --since="90 days ago" --name-only --pretty=format: | sort | uniq -c | sort -rn | head -20
+git log --since="90 days ago" --name-only --relative --pretty=format: -- . | sort | uniq -c | sort -rn | head -20
 ```
 
 The git-churn pass identifies high-churn files. On its own, "this file changes often" is a change-risk fact, not a behavioral rule — record it in `NAVIGATION.md`'s change-impact notes. Only promote a high-churn file to `INVARIANTS.md` if the churn traces to an actual concrete rule (e.g. the commits show a recurring bug class tied to a specific invariant), not just frequency.
@@ -173,11 +175,11 @@ if [ -z "$LAST_DOC_COMMIT" ]; then
   LAST_DOC_COMMIT=$(git log -1 --format=%H -- docs/MAP.md 2>/dev/null)
 fi
 if [ -n "$LAST_DOC_COMMIT" ]; then
-  git diff "$LAST_DOC_COMMIT"..HEAD --name-only | grep -v -E "^docs/"
+  git diff "$LAST_DOC_COMMIT"..HEAD --name-only --relative -- . | grep -v -E "^docs/"
 else
-  git diff HEAD --name-only | grep -v -E "^docs/"
+  git diff HEAD --name-only --relative -- . | grep -v -E "^docs/"
 fi
-git status --short | awk '{print $2}' | grep -v -E "^docs/"
+git status --short -- . | awk '{print $2}' | grep -v -E "^docs/"
 ```
 
 No changes from either check -> report "docs/ is current, no source changes detected," stop.
@@ -185,7 +187,7 @@ No changes from either check -> report "docs/ is current, no source changes dete
 Before B2, skip the commits that are clearly not documentation-relevant, using the commit message alone — no diff inspection needed for this filter:
 
 ```bash
-git log "$LAST_DOC_COMMIT"..HEAD --oneline
+git log "$LAST_DOC_COMMIT"..HEAD --oneline -- .
 ```
 
 Skip a commit only if its message clearly matches one of: `fix:`, `chore:`, `refactor:`, `ci:`, `test:`, `style:`, `docs:`, or a dependency-bump message. Treat every other commit as relevant — including ones with no conventional-commit prefix at all, and including anything even loosely uncertain. Do not try to second-guess a `refactor:`-labeled commit by reading its diff; trust the message, skip it. This is a cheap filter, not a guarantee — the project's periodic `--check` runs (Path C) are the backstop for anything this filter wrongly skips.
