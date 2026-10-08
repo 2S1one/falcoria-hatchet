@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "hatchet-docs": {
-      "type": "http",
-      "url": "https://docs.hatchet.run/api/mcp"
-    }
-  }
-}
