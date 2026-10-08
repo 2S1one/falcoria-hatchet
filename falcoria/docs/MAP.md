@@ -1,8 +1,8 @@
 # Documentation map
 
-Generated against commit `6a6dc4c77b079a75ef6da5096930d97fe223de52` on branch `packaging`. The working tree also holds uncommitted additions made after that commit: `apps/tasker/Dockerfile`, `apps/worker/Dockerfile`, `.github/workflows/ci.yml` and `.github/workflows/docker-publish.yml`.
+Generated against commit `7a03827304840a824c31aac6d92159e4e8dfe2e8` on branch `monorepo`. The source files were last read at commit `6a6dc4c`; later commits added Dockerfiles, CI workflows and moved the system into `falcoria/` without changing source code.
 
-Falcoria is a uv workspace monorepo: three apps (`scanledger`, `tasker`, `worker`) and three shared packages. The stack is read from the root `pyproject.toml` and each member's `pyproject.toml`; no separate stack file exists.
+Falcoria is a uv workspace monorepo: three apps (`scanledger`, `tasker`, `worker`) and three shared packages. The stack is read from `falcoria/pyproject.toml` and each member's `pyproject.toml`; no separate stack file exists.
 
 | File | Holds | Open it when |
 |---|---|---|
