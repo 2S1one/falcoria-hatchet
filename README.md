@@ -1,24 +1,20 @@
-# falcoria
+# falcoria-hatchet
 
-Network-scanning platform. uv-workspace monorepo, built file-by-file along the data flow,
-starting with `scanledger`.
+Network-scanning platform on a self-hosted [Hatchet](https://hatchet.run) engine. One
+repository, two independent systems.
 
-## Layout
-
-| Path | Import name | Role |
+| Directory | System | What it does |
 |---|---|---|
-| `packages/falcoria-contracts/` | `falcoria_contracts` | Shared Pydantic contracts, enums, DTOs. `pydantic` + stdlib only. |
-| `apps/scanledger/` | `falcoria_scanledger` | System of record for port-scan results (FastAPI + SQLModel + asyncpg). |
-| `apps/tasker/` | `falcoria_tasker` | API server; starts, tracks and cancels scans on Hatchet (single instance). |
-| `apps/worker/` | `falcoria_worker` | Hatchet workers: scanner (nmap, N instances) and uploader (reports to scanledger). |
-| `apps/falcli/` | `falcli` | Console client. *Not created yet.* |
+| `falcoria/` | falcoria | Scans networks with nmap, stores open ports in `scanledger`, publishes an event feed of changes. |
+| `asm/` | asm-core | Reads that feed; probes new HTTP ports with httpx and scans them with nuclei; stores findings. |
 
-## Development
+Each system is its own `uv` workspace with its own lockfile, database, Docker images and CI.
+Run `uv` from inside `falcoria/` or `asm/`:
 
 ```sh
-uv sync                       # whole workspace
-uv sync --package falcoria-scanledger   # one member's dependency tree
+cd falcoria && uv sync && uv run pytest -m "not postgres and not hatchet"
+cd asm      && uv sync && uv run pytest -m "not postgres and not hatchet"
 ```
 
-Tooling: `uv run ruff format .`, `uv run ruff check . --fix`, `uv run pyright`,
-`uv run pytest`. See `AGENTS.md` for conventions.
+See `AGENTS.md` for the rules shared by both systems, then `falcoria/AGENTS.md` or
+`asm/AGENTS.md`. Deployment files (`deploy/`) are not written yet.

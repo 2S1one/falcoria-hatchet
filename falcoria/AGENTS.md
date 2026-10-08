@@ -1,8 +1,8 @@
 # AGENTS.md
 
-Single source of truth for agents working in this repo. `CLAUDE.md` imports this file.
-Nested `AGENTS.md` files (one per workspace member) add area-specific rules — the file
-nearest the edited file wins.
+Rules for agents working in `falcoria/`. The root `AGENTS.md` holds the rules shared with
+`asm/`. Nested `AGENTS.md` files (one per workspace member) add area-specific rules — the
+file nearest the edited file wins.
 
 ## Overview
 
@@ -26,8 +26,8 @@ service (`scanledger`), an API server + Hatchet client (`tasker`), nmap job runn
 ## Hatchet
 
 - **Docs are the source of truth.** Any Hatchet-specific question (SDK API, task options,
-  retries, events, filters, limits) is answered from the docs — use the `hatchet-docs` MCP
-  server (`.mcp.json`) or `https://docs.hatchet.run/llms.txt`. Never from memory.
+  retries, events, filters, limits) is answered from the docs at
+  `https://docs.hatchet.run/llms.txt`. Never from memory.
 - **If the docs are silent, unclear or contradict each other** on something that matters
   (cancellation, retries, run filtering, concurrency, durability), verify with a real run
   against the local Hatchet test engine (its `docker-compose.yml`) and record the finding.
@@ -50,7 +50,7 @@ service (`scanledger`), an API server + Hatchet client (`tasker`), nmap job runn
 | Test — fast (no Postgres/Hatchet) | `uv run pytest -m "not postgres and not hatchet"` |
 | Test — one node | `uv run pytest apps/scanledger/tests/test_foo.py::test_bar` |
 
-Run `uv` from the repo root — from inside a member directory `uv add` / `uv sync`
+Run `uv` from the `falcoria/` directory — from inside a member directory `uv add` / `uv sync`
 target that member, not the workspace.
 
 ## Project structure
