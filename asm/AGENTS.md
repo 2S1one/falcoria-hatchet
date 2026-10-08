@@ -101,6 +101,17 @@ Run `uv run pytest -m postgres` too when a change touches `db/` or `persistence/
 
 ## Documentation
 
+`docs/` is a generated navigation map for agents (and humans): one master index
+(`docs/MAP.md`) plus focused files. It is produced by the `project-doc-map` skill, committed
+at `.claude/skills/project-doc-map/` in the repo root. Start the agent in `asm/` and run it
+there, so the skill reads only this system.
+
+After changes that touch source code — not docs-only, not pure formatting — run
+`/project-doc-map` before calling a task done. It updates only the affected files and never
+writes outside `docs/`.
+
+Architecture decisions go to `docs/adr/` via the `architecture-decision-records` skill.
+
 `docs/hatchet-batch-timing.md` records measured behaviour of Hatchet batch tasks that
 shaped the nuclei worker (group timers, slot behaviour). It was measured on engine 0.107.2
 and partly re-checked on 0.110.5. Recheck before relying on it for a new engine version.
