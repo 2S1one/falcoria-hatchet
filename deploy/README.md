@@ -13,6 +13,8 @@ a full stack on one machine, images built from source.
 | `scripts/create-hatchet-token.sh` | Prints a Hatchet API token. |
 | `.env.example` | Every variable with its development default. Copy to `.env` (ignored by git). |
 
+How the Dockerfiles and Compose files work: `../docs/CONTAINERS.md`.
+
 The service files of the systems cannot run alone: they refer to services of `compose.infra.yml`.
 Run one system with its profile.
 
