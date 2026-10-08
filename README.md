@@ -17,4 +17,4 @@ cd asm      && uv sync && uv run pytest -m "not postgres and not hatchet"
 ```
 
 See `AGENTS.md` for the rules shared by both systems, then `falcoria/AGENTS.md` or
-`asm/AGENTS.md`. To run both systems in containers, see `deploy/README.md`.
+`asm/AGENTS.md`. For how the platform works, see `docs/OVERVIEW.md`; to run both systems in containers, see `deploy/README.md`.

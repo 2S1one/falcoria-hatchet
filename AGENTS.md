@@ -52,4 +52,5 @@ A network-scanning platform on one self-hosted Hatchet engine, made of two syste
 
 - Falcoria: `falcoria/AGENTS.md`, `falcoria/docs/MAP.md`.
 - asm: `asm/AGENTS.md`, `asm/docs/`.
+- What the platform does and how a scan flows through it: `docs/OVERVIEW.md`.
 - Containers and deployment: `docs/CONTAINERS.md`, `deploy/README.md`.
