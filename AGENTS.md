@@ -25,6 +25,8 @@ A network-scanning platform on one self-hosted Hatchet engine, made of two syste
   for asm). Only the Hatchet engine is shared.
 - CI runs per system by path: a change in `falcoria/**` does not run `asm` jobs, and the
   reverse. A change under `.github/workflows/` runs its own system's jobs only.
+- Releases are per system. A tag `falcoria-vX.Y.Z` publishes the falcoria images, a tag
+  `asm-vX.Y.Z` publishes the asm images. Each system has its own version numbers.
 - Moving code into a shared top-level package needs an explicit decision. Ask first.
 
 ## Git workflow

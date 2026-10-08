@@ -1,13 +1,13 @@
-name: Publish Docker Images
+name: Publish Docker Images (asm)
 
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - 'asm-v*.*.*'
   workflow_dispatch:
 
 concurrency:
-  group: docker-publish-${{ github.ref }}
+  group: docker-publish-asm-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
@@ -21,23 +21,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - system: falcoria
-            app: scanledger
-            image: falcoria-scanledger
-          - system: falcoria
-            app: tasker
-            image: falcoria-tasker
-          - system: falcoria
-            app: worker
-            image: falcoria-worker
-          - system: asm
-            app: httpx-worker
+          - app: httpx-worker
             image: asm-httpx-worker
-          - system: asm
-            app: nuclei-worker
+          - app: nuclei-worker
             image: asm-nuclei-worker
-          - system: asm
-            app: asm-core
+          - app: asm-core
             image: asm-core
     steps:
       - uses: actions/checkout@v7
@@ -58,8 +46,8 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{version}},match=(\d+\.\d+\.\d+)$
+            type=semver,pattern={{major}}.{{minor}},match=(\d+\.\d+\.\d+)$
             type=raw,value=latest
             type=sha,prefix=sha-
 
@@ -67,8 +55,8 @@ jobs:
         id: push
         uses: docker/build-push-action@v6
         with:
-          context: ${{ matrix.system }}
-          file: ${{ matrix.system }}/apps/${{ matrix.app }}/Dockerfile
+          context: asm
+          file: asm/apps/${{ matrix.app }}/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
