@@ -41,6 +41,8 @@ services:
       - "${ASM_API_PORT:-8103}:8000"
     environment:
       <<: [*asm-db, *hatchet-client]
+      SCANLEDGER_API_URL: http://scanledger:8000/api
+      SCANLEDGER_ASM_TOKEN: ${SCANLEDGER_ASM_TOKEN:-asm-token-dev}
     depends_on:
       postgres:
         condition: service_healthy

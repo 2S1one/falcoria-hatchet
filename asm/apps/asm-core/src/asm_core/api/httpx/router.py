@@ -10,9 +10,10 @@ from asm_contracts.httpx_store import HttpxStoreTask
 from asm_core.api.dependencies import Session
 from asm_core.api.httpx.schemas import HttpxLaunchOut, HttpxResultOut, HttpxScanIn
 from asm_core.api.httpx.service import list_results
+from asm_core.api.security import require_project_access
 from asm_core.tasks import start_httpx_scans
 
-router = APIRouter(prefix="/projects/{project_id}")
+router = APIRouter(prefix="/projects/{project_id}", dependencies=[Depends(require_project_access)])
 
 HttpxStarter = Callable[[Sequence[HttpxStoreTask]], Awaitable[None]]
 

@@ -10,9 +10,10 @@ from asm_contracts.nuclei_task import NucleiScanTask
 from asm_core.api.dependencies import Session
 from asm_core.api.nuclei.schemas import NucleiFindingOut, NucleiLaunchOut, NucleiScanIn
 from asm_core.api.nuclei.service import list_findings
+from asm_core.api.security import require_project_access
 from asm_core.tasks import start_nuclei_scans
 
-router = APIRouter(prefix="/projects/{project_id}")
+router = APIRouter(prefix="/projects/{project_id}", dependencies=[Depends(require_project_access)])
 
 NucleiStarter = Callable[[Sequence[NucleiScanTask]], Awaitable[None]]
 
