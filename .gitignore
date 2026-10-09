@@ -24,6 +24,7 @@ deploy/ansible/inventory/hosts.ini
 deploy/ansible/inventory/group_vars/falcoria.yml
 deploy/ansible/inventory/group_vars/vault.yml
 deploy/ansible/.vault-pass
+deploy/ansible/.pki/
 deploy/ansible/collections/
 
 # Editor / OS

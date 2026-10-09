@@ -1,0 +1,17 @@
+---
+# Template for the secrets file. Copy to vault.yml and encrypt it:
+#   ansible-vault encrypt inventory/group_vars/vault.yml
+# Use letters and digits only: the values end up in a Compose .env file, where "$" and quotes
+# have special meaning.
+
+vault_postgres_admin_password: "replace-me"
+vault_scanledger_db_password: "replace-me"
+vault_asm_core_db_password: "replace-me"
+vault_hatchet_db_password: "replace-me"
+vault_rabbitmq_password: "replace-me"
+
+# scanledger service tokens; the four must all differ.
+vault_scanledger_admin_token: "replace-me-1"
+vault_scanledger_tasker_token: "replace-me-2"
+vault_scanledger_worker_token: "replace-me-3"
+vault_scanledger_asm_token: "replace-me-4"

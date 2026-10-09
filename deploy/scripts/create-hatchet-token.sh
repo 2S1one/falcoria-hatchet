@@ -1,6 +1,7 @@
 #!/bin/sh
 # Prints a new Hatchet API token for the `default` tenant. Run after the infrastructure is up:
 #   deploy/scripts/create-hatchet-token.sh
+# Set COMPOSE_FILE to use another compose file (default compose.test.yml).
 # Put the printed value into deploy/.env as HATCHET_TOKEN. Do not paste it into chat or commits.
 #
 # The engine also holds a service tenant named `internal`. A token for it is accepted, but
@@ -8,7 +9,7 @@
 set -eu
 
 cd "$(dirname "$0")/.."
-compose="docker compose -f compose.test.yml"
+compose="docker compose -f ${COMPOSE_FILE:-compose.test.yml}"
 
 tenant_id=$($compose exec -T hatchet-postgres \
   psql -U hatchet -d hatchet -tA -c "SELECT id FROM \"Tenant\" WHERE slug = 'default'")

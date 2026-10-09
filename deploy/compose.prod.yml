@@ -1,0 +1,135 @@
+# Main server of the production stack: the Hatchet engine with its infrastructure, the
+# application database, and the services of both systems that run next to it. The scanners
+# (profile `remote`) run on their own machines and are not part of this file.
+#
+#   docker compose -f deploy/compose.prod.yml --profile main up -d --pull always --no-build
+#
+# Reuses the service files of the test stack and changes only what differs in production:
+# images from GHCR by tag, no local builds, ports on 127.0.0.1 (reach them through an SSH
+# tunnel), restart policy and log rotation. Values come from deploy/.env.
+name: falcoria
+
+include:
+  - compose.infra.yml
+  - ../falcoria/compose.yml
+  - ../asm/compose.yml
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+x-long-running: &long-running
+  restart: unless-stopped
+  logging: *logging
+
+# Mutual TLS to the Hatchet engine. Hatchet SDK clients read these variables; the certificates
+# are issued by the Ansible `pki` role into deploy/certs.
+x-hatchet-mtls-client: &hatchet-mtls-client
+  HATCHET_CLIENT_TLS_STRATEGY: mtls
+  HATCHET_CLIENT_TLS_ROOT_CA_FILE: /certs/ca.crt
+  HATCHET_CLIENT_TLS_CERT_FILE: /certs/client.crt
+  HATCHET_CLIENT_TLS_KEY_FILE: /certs/client.key
+  HATCHET_CLIENT_TLS_SERVER_NAME: hatchet-engine
+
+x-client-certs: &client-certs ./certs/client:/certs:ro
+
+services:
+  # --- infrastructure ---
+  postgres:
+    <<: *long-running
+    ports: !override
+      - "127.0.0.1:${POSTGRES_PORT:-5436}:5432"
+
+  hatchet-postgres:
+    <<: *long-running
+
+  rabbitmq:
+    <<: *long-running
+
+  hatchet-engine:
+    <<: *long-running
+    # Published for the remote workers; clients must present a certificate from our CA.
+    ports: !override
+      - "${HATCHET_GRPC_BIND:-127.0.0.1}:${HATCHET_GRPC_PORT:-7070}:7070"
+    environment:
+      SERVER_GRPC_INSECURE: "false"
+      SERVER_TLS_STRATEGY: mtls
+      SERVER_TLS_CERT_FILE: /certs/server.crt
+      SERVER_TLS_KEY_FILE: /certs/server.key
+      SERVER_TLS_ROOT_CA_FILE: /certs/ca.crt
+      # The engine's internal client checks the engine certificate against this name.
+      SERVER_INTERNAL_CLIENT_TLS_SERVER_NAME: hatchet-engine
+    volumes:
+      - ./certs/engine:/certs:ro
+
+  hatchet-dashboard:
+    <<: *long-running
+    ports: !override
+      - "127.0.0.1:${HATCHET_DASHBOARD_PORT:-8088}:80"
+
+  # --- falcoria ---
+  scanledger:
+    <<: *long-running
+    image: ghcr.io/${GHCR_OWNER:?}/falcoria-scanledger:${FALCORIA_VERSION:?}
+    build: !reset null
+    ports: !override
+      - "127.0.0.1:${SCANLEDGER_PORT:-8101}:8000"
+
+  scanledger-migrate:
+    image: ghcr.io/${GHCR_OWNER:?}/falcoria-scanledger:${FALCORIA_VERSION:?}
+    build: !reset null
+    logging: *logging
+
+  tasker:
+    <<: *long-running
+    environment:
+      <<: *hatchet-mtls-client
+      TASKER_HATCHET_TLS_STRATEGY: mtls
+    volumes:
+      - *client-certs
+    image: ghcr.io/${GHCR_OWNER:?}/falcoria-tasker:${FALCORIA_VERSION:?}
+    build: !reset null
+    ports: !override
+      - "127.0.0.1:${TASKER_PORT:-8102}:8000"
+
+  uploader:
+    <<: *long-running
+    environment:
+      <<: *hatchet-mtls-client
+      WORKER_HATCHET_TLS_STRATEGY: mtls
+    volumes:
+      - *client-certs
+    image: ghcr.io/${GHCR_OWNER:?}/falcoria-worker:${FALCORIA_VERSION:?}
+    build: !reset null
+
+  # --- asm ---
+  asm-worker:
+    <<: *long-running
+    environment:
+      <<: *hatchet-mtls-client
+    volumes:
+      - *client-certs
+    image: ghcr.io/${GHCR_OWNER:?}/asm-core:${ASM_VERSION:?}
+    build: !reset null
+
+  asm-api:
+    <<: *long-running
+    environment:
+      <<: *hatchet-mtls-client
+    volumes:
+      - *client-certs
+    image: ghcr.io/${GHCR_OWNER:?}/asm-core:${ASM_VERSION:?}
+    build: !reset null
+    ports: !override
+      - "127.0.0.1:${ASM_API_PORT:-8103}:8000"
+
+  asm-bridge:
+    <<: *long-running
+    environment:
+      <<: *hatchet-mtls-client
+    volumes:
+      - *client-certs
+    image: ghcr.io/${GHCR_OWNER:?}/asm-core:${ASM_VERSION:?}
+    build: !reset null

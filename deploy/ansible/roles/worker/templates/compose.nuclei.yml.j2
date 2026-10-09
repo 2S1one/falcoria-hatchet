@@ -1,0 +1,20 @@
+{{ ansible_managed | comment }}
+name: asm-nuclei-worker
+
+x-worker: &worker
+  restart: unless-stopped
+  env_file: [.env]
+  volumes:
+    - ./certs:/certs:ro
+  logging:
+    driver: json-file
+    options: { max-size: "10m", max-file: "5" }
+
+services:
+  httpx-worker:
+    <<: *worker
+    image: ghcr.io/{{ ghcr_owner }}/asm-httpx-worker:{{ asm_version }}
+
+  nuclei-worker:
+    <<: *worker
+    image: ghcr.io/{{ ghcr_owner }}/asm-nuclei-worker:{{ asm_version }}

@@ -13,7 +13,7 @@ x-hatchet-client: &hatchet-client
   HATCHET_CLIENT_TLS_STRATEGY: none
 
 x-asm-core: &asm-core
-  profiles: [asm]
+  profiles: [asm, main]
   image: ${ASM_CORE_IMAGE:-asm-core:dev}
   build:
     context: .
@@ -64,7 +64,7 @@ services:
         condition: service_started
 
   httpx-worker:
-    profiles: [asm]
+    profiles: [asm, remote]
     image: ${ASM_HTTPX_WORKER_IMAGE:-asm-httpx-worker:dev}
     build:
       context: .
@@ -76,7 +76,7 @@ services:
       - hatchet-engine
 
   nuclei-worker:
-    profiles: [asm]
+    profiles: [asm, remote]
     image: ${ASM_NUCLEI_WORKER_IMAGE:-asm-nuclei-worker:dev}
     build:
       context: .

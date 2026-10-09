@@ -1,0 +1,154 @@
+---
+- name: Create the certificate directories
+  ansible.builtin.file:
+    path: "{{ pki_dir }}/{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    mode: "0755"
+  loop:
+    - { path: "", owner: root }
+    - { path: ca, owner: root }
+    - { path: engine, owner: root }
+    - { path: client, owner: "{{ pki_client_uid }}" }
+    - { path: workers, owner: root }
+  loop_control:
+    label: "{{ item.path }}"
+
+# --- Certificate authority ---
+- name: Generate the CA private key
+  community.crypto.openssl_privatekey:
+    path: "{{ pki_dir }}/ca/ca.key"
+    size: 4096
+    mode: "0600"
+
+- name: Generate the CA signing request
+  community.crypto.openssl_csr:
+    path: "{{ pki_dir }}/ca/ca.csr"
+    privatekey_path: "{{ pki_dir }}/ca/ca.key"
+    common_name: Falcoria Hatchet CA
+    basic_constraints: ["CA:TRUE"]
+    basic_constraints_critical: true
+    key_usage: [keyCertSign, cRLSign]
+    key_usage_critical: true
+
+- name: Generate the self-signed CA certificate
+  community.crypto.x509_certificate:
+    path: "{{ pki_dir }}/ca/ca.crt"
+    privatekey_path: "{{ pki_dir }}/ca/ca.key"
+    csr_path: "{{ pki_dir }}/ca/ca.csr"
+    provider: selfsigned
+    selfsigned_not_after: "{{ pki_validity }}"
+    mode: "0644"
+
+# --- Engine server certificate ---
+# The engine's own internal client reuses this certificate, so it needs both usages.
+- name: Generate the engine private key
+  community.crypto.openssl_privatekey:
+    path: "{{ pki_dir }}/engine/server.key"
+    size: 2048
+    mode: "0600"
+
+- name: Generate the engine signing request
+  community.crypto.openssl_csr:
+    path: "{{ pki_dir }}/engine/server.csr"
+    privatekey_path: "{{ pki_dir }}/engine/server.key"
+    common_name: "{{ pki_engine_name }}"
+    subject_alt_name: ["DNS:{{ pki_engine_name }}"]
+    extended_key_usage: [serverAuth, clientAuth]
+
+- name: Sign the engine certificate
+  community.crypto.x509_certificate:
+    path: "{{ pki_dir }}/engine/server.crt"
+    csr_path: "{{ pki_dir }}/engine/server.csr"
+    ownca_path: "{{ pki_dir }}/ca/ca.crt"
+    ownca_privatekey_path: "{{ pki_dir }}/ca/ca.key"
+    provider: ownca
+    ownca_not_after: "{{ pki_validity }}"
+    mode: "0644"
+
+# --- Client certificate shared by the services on this server ---
+- name: Generate the internal client private key
+  community.crypto.openssl_privatekey:
+    path: "{{ pki_dir }}/client/client.key"
+    size: 2048
+    owner: "{{ pki_client_uid }}"
+    mode: "0600"
+
+- name: Generate the internal client signing request
+  community.crypto.openssl_csr:
+    path: "{{ pki_dir }}/client/client.csr"
+    privatekey_path: "{{ pki_dir }}/client/client.key"
+    common_name: internal-client
+    extended_key_usage: [clientAuth]
+
+- name: Sign the internal client certificate
+  community.crypto.x509_certificate:
+    path: "{{ pki_dir }}/client/client.crt"
+    csr_path: "{{ pki_dir }}/client/client.csr"
+    ownca_path: "{{ pki_dir }}/ca/ca.crt"
+    ownca_privatekey_path: "{{ pki_dir }}/ca/ca.key"
+    provider: ownca
+    ownca_not_after: "{{ pki_validity }}"
+    mode: "0644"
+
+- name: Copy the CA certificate next to the engine and client certificates
+  ansible.builtin.copy:
+    src: "{{ pki_dir }}/ca/ca.crt"
+    dest: "{{ pki_dir }}/{{ item }}/ca.crt"
+    remote_src: true
+    mode: "0644"
+  loop:
+    - engine
+    - client
+
+# --- One client certificate per remote worker ---
+- name: Generate the worker private keys
+  community.crypto.openssl_privatekey:
+    path: "{{ pki_dir }}/workers/{{ item }}.key"
+    size: 2048
+    mode: "0600"
+  loop: "{{ pki_worker_hosts }}"
+
+- name: Generate the worker signing requests
+  community.crypto.openssl_csr:
+    path: "{{ pki_dir }}/workers/{{ item }}.csr"
+    privatekey_path: "{{ pki_dir }}/workers/{{ item }}.key"
+    common_name: "worker-{{ item }}"
+    extended_key_usage: [clientAuth]
+  loop: "{{ pki_worker_hosts }}"
+
+- name: Sign the worker certificates
+  community.crypto.x509_certificate:
+    path: "{{ pki_dir }}/workers/{{ item }}.crt"
+    csr_path: "{{ pki_dir }}/workers/{{ item }}.csr"
+    ownca_path: "{{ pki_dir }}/ca/ca.crt"
+    ownca_privatekey_path: "{{ pki_dir }}/ca/ca.key"
+    provider: ownca
+    ownca_not_after: "{{ pki_validity }}"
+    mode: "0644"
+  loop: "{{ pki_worker_hosts }}"
+
+# The worker roles copy these files to the worker machines.
+- name: Create the local directory for worker certificates
+  delegate_to: localhost
+  become: false
+  ansible.builtin.file:
+    path: "{{ pki_local_dir }}"
+    state: directory
+    mode: "0700"
+
+- name: Fetch the CA certificate
+  ansible.builtin.fetch:
+    src: "{{ pki_dir }}/ca/ca.crt"
+    dest: "{{ pki_local_dir }}/ca.crt"
+    flat: true
+
+- name: Fetch the worker certificates and keys
+  ansible.builtin.fetch:
+    src: "{{ pki_dir }}/workers/{{ item.0 }}.{{ item.1 }}"
+    dest: "{{ pki_local_dir }}/{{ item.0 }}.{{ item.1 }}"
+    flat: true
+  loop: "{{ pki_worker_hosts | product(['crt', 'key']) | list }}"
+  loop_control:
+    label: "{{ item.0 }}.{{ item.1 }}"
+  no_log: true

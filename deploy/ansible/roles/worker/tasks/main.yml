@@ -1,0 +1,59 @@
+---
+- name: Create the worker directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ worker_uid }}"
+    mode: "0755"
+  loop:
+    - "{{ worker_dir }}"
+    - "{{ worker_dir }}/certs"
+
+- name: Copy the CA certificate
+  ansible.builtin.copy:
+    src: "{{ pki_local_dir }}/ca.crt"
+    dest: "{{ worker_dir }}/certs/ca.crt"
+    owner: "{{ worker_uid }}"
+    mode: "0644"
+
+- name: Copy the client certificate and key of this worker
+  ansible.builtin.copy:
+    src: "{{ pki_local_dir }}/{{ inventory_hostname }}.{{ item.ext }}"
+    dest: "{{ worker_dir }}/certs/client.{{ item.ext }}"
+    owner: "{{ worker_uid }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { ext: crt, mode: "0644" }
+    - { ext: key, mode: "0600" }
+  loop_control:
+    label: "client.{{ item.ext }}"
+
+- name: Read the engine token from the main server
+  ansible.builtin.slurp:
+    src: "{{ hatchet_token_file }}"
+  delegate_to: "{{ groups['control_plane'][0] }}"
+  register: worker_token_slurp
+  no_log: true
+
+- name: Write the environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ worker_dir }}/.env"
+    mode: "0600"
+  vars:
+    worker_hatchet_token: "{{ worker_token_slurp.content | b64decode | trim }}"
+  no_log: true
+
+- name: Write the Compose file
+  ansible.builtin.template:
+    src: "compose.{{ worker_kind }}.yml.j2"
+    dest: "{{ worker_dir }}/compose.yml"
+    mode: "0644"
+
+- name: Start the worker containers
+  community.docker.docker_compose_v2:
+    project_src: "{{ worker_dir }}"
+    state: present
+    pull: "{{ worker_pull }}"
+    build: never
+    wait: true

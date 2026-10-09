@@ -14,7 +14,7 @@ x-hatchet-client: &worker-hatchet
 
 services:
   scanledger-migrate:
-    profiles: [falcoria]
+    profiles: [falcoria, main]
     image: ${SCANLEDGER_IMAGE:-falcoria-scanledger:dev}
     build:
       context: .
@@ -27,7 +27,7 @@ services:
         condition: service_healthy
 
   scanledger:
-    profiles: [falcoria]
+    profiles: [falcoria, main]
     image: ${SCANLEDGER_IMAGE:-falcoria-scanledger:dev}
     build:
       context: .
@@ -48,7 +48,7 @@ services:
         condition: service_completed_successfully
 
   tasker:
-    profiles: [falcoria]
+    profiles: [falcoria, main]
     image: ${TASKER_IMAGE:-falcoria-tasker:dev}
     build:
       context: .
@@ -72,7 +72,7 @@ services:
 
   # nmap runner. Needs raw-socket capabilities; see apps/worker/Dockerfile.
   scanner:
-    profiles: [falcoria]
+    profiles: [falcoria, remote]
     image: ${WORKER_IMAGE:-falcoria-worker:dev}
     build:
       context: .
@@ -87,7 +87,7 @@ services:
 
   # Sends finished nmap reports to scanledger.
   uploader:
-    profiles: [falcoria]
+    profiles: [falcoria, main]
     image: ${WORKER_IMAGE:-falcoria-worker:dev}
     build:
       context: .

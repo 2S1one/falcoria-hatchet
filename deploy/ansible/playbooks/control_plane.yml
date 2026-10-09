@@ -1,0 +1,15 @@
+---
+- name: Deploy the main server
+  hosts: control_plane
+  become: true
+  vars_files:
+    - ../inventory/group_vars/vault.yml
+  roles:
+    - role: common
+      tags: [common]
+    - role: docker
+      tags: [docker]
+    - role: pki
+      tags: [pki]
+    - role: control_plane
+      tags: [control_plane]
