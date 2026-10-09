@@ -1,7 +1,8 @@
 # deploy
 
-Docker Compose files that run falcoria and asm together. Only the test stack exists so far:
-a full stack on one machine, images built from source.
+Docker Compose files that run falcoria and asm together: a test stack on one machine (images built
+from source) and a production deployment on several machines (images by tag, deployed with Ansible,
+see `ansible/README.md` and the full runbook `../docs/DEPLOYMENT.md`).
 
 | File | Holds |
 |---|---|
@@ -11,6 +12,8 @@ a full stack on one machine, images built from source.
 | `../asm/compose.yml` | asm services (profile `asm`). |
 | `postgres-init/` | Creates the roles and databases on the first start of an empty volume. |
 | `scripts/create-hatchet-token.sh` | Prints a Hatchet API token. |
+| `compose.prod.yml` | Production control host: includes the same service files, pulls images from GHCR by tag, no local builds, ports on 127.0.0.1, mutual TLS to the engine. Used by Ansible. |
+| `ansible/` | Playbooks and roles for the control host and the remote workers. |
 | `.env.example` | Every variable with its development default. Copy to `.env` (ignored by git). |
 
 How the Dockerfiles and Compose files work: `../docs/CONTAINERS.md`.
@@ -48,9 +51,16 @@ Stop and delete the data: `docker compose -f compose.test.yml --profile falcoria
   per second (`ASM_CORE_CHAIN_NUCLEI_PARAMS` in `asm/compose.yml`); keep it that way for hosts you
   do not own.
 
+## Production
+
+Run with `--profile main` on the control host; the scanner machines (profile `remote`) get their own
+small Compose files from the Ansible `worker` role. Everything is deployed by `ansible/`, which also
+issues the certificates for mutual TLS between the Hatchet engine and its clients.
+
 ## Not written yet
 
-- A production stack (images from GHCR by tag, TLS or mutual TLS to the engine, no published
-  database ports).
-- Worker files for separate scanner machines.
-- Secrets handling beyond `.env`.
+- Publishing the images to GHCR was never run, so the tag format is unverified. The production
+  deployment has only been tried with images loaded by hand.
+- Certificate rotation and revocation (certificates are issued for ten years), database backups,
+  monitoring.
+- The Ansible `docker` role has not been run on a clean Ubuntu machine.

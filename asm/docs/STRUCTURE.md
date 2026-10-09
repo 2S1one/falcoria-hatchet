@@ -36,5 +36,6 @@ Inside `asm_core`:
 | `persistence/` | Upserts and reconciliation of httpx and nuclei results. |
 | `db/` | Engine, session factory, table creation, result tables. |
 | `api/httpx/`, `api/nuclei/` | Router, schemas and read service per scanner. |
+| `api/security.py`, `api/scanledger_access.py`, `api/errors.py` | Project access check against scanledger, its HTTP client, and the HTTP errors it raises. |
 
 Skipped: per-package trees. Six workspace members, no deep nesting.

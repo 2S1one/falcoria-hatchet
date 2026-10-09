@@ -82,13 +82,15 @@ with separate roles. asm never reads scanledger's database; it only calls its HT
 
 - Checked on a small run (two targets, three ports). Behavior with hundreds of events per second is
   not measured.
-- The asm API has no authentication, no scan status and no cancel, by decision for the MVP.
+- The asm API checks the caller's token against project membership in scanledger. It has no scan
+  status and no cancel, by decision for the MVP.
 - asm creates its tables on start and has no migrations; a changed column does not reach an
   existing database.
 - nuclei is limited to light templates and 20 requests per second in the test stack. Keep that for
   hosts you do not own.
-- There is no production stack yet, and no files for scanner machines separate from the control
-  host.
+- The production deployment (`deploy/compose.prod.yml`, `deploy/ansible/`) ran once on three
+  machines with one small scan. Images were loaded by hand: publishing to GHCR was never run, so
+  the image tag format is unverified. Certificates are not rotated, and databases are not backed up.
 
 ## Read next
 

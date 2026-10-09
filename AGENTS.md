@@ -11,7 +11,7 @@ A network-scanning platform on one self-hosted Hatchet engine, made of two syste
 |---|---|---|
 | `falcoria/` | falcoria | Port scanning with nmap. `scanledger` stores results and serves an event feed; `tasker` starts and tracks scans; `worker` runs nmap and uploads reports. |
 | `asm/` | asm-core | Reads the scanledger event feed, probes new HTTP ports with httpx, scans them with nuclei, stores findings in its own database. |
-| `deploy/` | deployment | Compose files and environment templates for both systems; see `deploy/README.md`. Test stack only so far. |
+| `deploy/` | deployment | Compose files and environment templates for both systems, and the Ansible playbooks for production; see `deploy/README.md`. |
 | `docs/` | shared docs | Documentation that covers both systems. Per-system docs live in `falcoria/docs/` and `asm/docs/`. |
 
 ## Isolation between systems
@@ -53,5 +53,5 @@ A network-scanning platform on one self-hosted Hatchet engine, made of two syste
 - Falcoria: `falcoria/AGENTS.md`, `falcoria/docs/MAP.md`.
 - asm: `asm/AGENTS.md`, `asm/docs/`.
 - What the platform does and how a scan flows through it: `docs/OVERVIEW.md`.
-- Containers and deployment: `docs/CONTAINERS.md`, `deploy/README.md`.
+- Containers and deployment: `docs/CONTAINERS.md`, `deploy/README.md`; deploying production from scratch (Ansible, mutual TLS, checks, failures): `docs/DEPLOYMENT.md`.
 - Open questions and todo: `notes/` (local, ignored by git; absent in a fresh clone).
