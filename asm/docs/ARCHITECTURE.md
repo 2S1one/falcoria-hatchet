@@ -12,7 +12,7 @@ asm-core reads falcoria's scanledger event feed, probes each new TCP port with h
 | `asm_httpx_worker.main:main` | `python -m asm_httpx_worker.main` | Hatchet worker `httpx-worker`. Registers `httpx-scan`. |
 | `asm_nuclei_worker.main:main` | `python -m asm_nuclei_worker.main` | Hatchet worker `nuclei-worker`, 1 slot. Registers the `nuclei-scan` workflow. |
 
-REST routes (prefix `/projects/{project_id}`, no authentication):
+REST routes (prefix `/projects/{project_id}`; every route needs the Bearer token of a user who is a member of that project in scanledger):
 
 | Route | Handler | Effect |
 |---|---|---|
@@ -20,6 +20,8 @@ REST routes (prefix `/projects/{project_id}`, no authentication):
 | `GET /results/nuclei` | `api/nuclei/router.py#read_nuclei_results` | Lists the project's rows of `nuclei_findings_current`. |
 | `POST /scans/httpx` | `api/httpx/router.py#launch_httpx` | Returns 202 and a new `scan_id`; starts one `httpx-scan-and-store` run per target. |
 | `GET /results/httpx` | `api/httpx/router.py#read_httpx_results` | Lists the project's rows of `httpx_results_current`. |
+
+Access check: `api/security.py#require_project_access` is a router-level dependency. It relays the caller's token to scanledger's `GET /projects/{id}` (`api/scanledger_access.py`) and maps 401, 403 and 404 through unchanged. Results are cached for 45 seconds per token and project. If scanledger does not answer, the request fails with 503.
 
 ## Hatchet tasks
 

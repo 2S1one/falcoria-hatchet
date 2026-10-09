@@ -17,6 +17,8 @@ Basic lint, type and test commands are in `MAP.md`. Paths start with the package
 - **OAST callbacks are off by default.** `no_interactsh=True` passes `-ni`. Setting it false sends callbacks to a public interactsh server. Lives in `asm_contracts/nuclei.py#NucleiScanParams`.
 - **`Hatchet()` runs at import.** `asm_core/tasks.py`, `asm_nuclei_worker/tasks.py` and `asm_httpx_worker/tasks.py` build the client when imported, so importing them needs `HATCHET_CLIENT_TOKEN` in the form of a JWT. `apps/asm-core/tests/conftest.py` sets a placeholder.
 - **The schema is created, never migrated.** `create_db_and_tables` runs on every start of the worker, the API and the bridge. No change to an existing column reaches an existing database.
+- **The API access check fails closed.** If scanledger is unreachable or answers with an unexpected status, `security.py#_check_access` raises 503; it never grants access. Lives in `asm_core/api/security.py`.
+- **Access results are cached for 45 seconds.** A removed project member keeps access for up to that long. The cache is per process. Lives in `asm_core/api/security.py`.
 
 Verification beyond `MAP.md`:
 

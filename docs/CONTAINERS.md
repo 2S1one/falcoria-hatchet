@@ -82,8 +82,10 @@ Elements used in these files:
 - **System files do not run alone.** `falcoria/compose.yml` and `asm/compose.yml` refer to
   `postgres` and `hatchet-engine` from `deploy/compose.infra.yml`. Run a system through
   `deploy/compose.test.yml` with its profile. Each service is described once; this is the cost.
-- **Images are built locally.** `build:` builds from source and tags the image `...:dev`. A production
-  stack will pull tagged images from GHCR instead; that file does not exist yet.
+- **Images are built locally in the test stack.** `build:` builds from source and tags the image
+  `...:dev`. `deploy/compose.prod.yml` pulls tagged images from GHCR instead and removes `build:`.
+- **Profiles say where a service runs.** `main` is the control host, `remote` the scanner machines
+  (`scanner`, `httpx-worker`, `nuclei-worker`). `falcoria` and `asm` select a whole system.
 
 ## Adding a service
 

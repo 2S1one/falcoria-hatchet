@@ -48,6 +48,7 @@ asm_contracts and asm_execution:
 | Change how findings are stored or retired | `persistence/nuclei.py` | `db/models.py`, `tests/test_persistence.py` |
 | Add a column or table | `db/models.py` | `db/database.py#create_db_and_tables`, `_TABLES` in `apps/asm-core/tests/conftest.py`; existing tables are not altered |
 | Add an API endpoint | `api/<scanner>/router.py` | `app.py#create_app`, `api/<scanner>/schemas.py` |
+| Change who may call the API | `api/security.py#require_project_access` | `api/scanledger_access.py`, `api/errors.py`, router `dependencies=` in `api/<scanner>/router.py`, `tests/test_api_security.py` |
 | Change httpx probe behavior | `probe.py`, `errors.py` | `ScanStatus` in `asm_contracts/httpx.py`, `tests/test_probe.py`, `tests/test_errors.py` |
 | Change a timeout, slot count or retry | `asm_core/constants.py`, `asm_nuclei_worker/constants.py`, `asm_httpx_worker/tasks.py` | Hatchet limits in `ARCHITECTURE.md` task table |
 | Rename a Hatchet task | `asm_contracts/task_names.py` | needs approval; every stub and worker registration |

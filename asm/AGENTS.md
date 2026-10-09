@@ -75,7 +75,8 @@ parses the token when `Hatchet()` is created at import.
   `httpx-scan-and-store`, `nuclei-scan`, `httpx-then-nuclei`, `persist-nuclei-findings`).
 - A database schema change. The schema is created by `create_all` at startup for now.
 - Changing the HTTP API (`/projects/{id}/scans/...`, `/projects/{id}/results/...`).
-  It has no authentication, status or cancel by decision; do not add them unasked.
+  Access is checked against scanledger (`api/security.py`). It has no scan status or cancel by
+  decision; do not add them unasked.
 - Changing the nuclei batch size or interval. The current values are placeholders.
 
 **🚫 never**
