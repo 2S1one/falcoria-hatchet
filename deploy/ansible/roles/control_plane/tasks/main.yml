@@ -1,0 +1,92 @@
+---
+- name: Create the runtime directories
+  ansible.builtin.file:
+    path: "{{ control_plane_base_dir }}/{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - deploy
+    - deploy/postgres-init
+    - deploy/scripts
+    - falcoria
+    - asm
+
+- name: Copy the Compose files and scripts
+  ansible.builtin.copy:
+    src: "{{ falcoria_repo_root }}/{{ item.src }}"
+    dest: "{{ control_plane_base_dir }}/{{ item.dest }}"
+    mode: "{{ item.mode }}"
+  loop: "{{ control_plane_files }}"
+  loop_control:
+    label: "{{ item.dest }}"
+
+- name: Check for a saved Hatchet token
+  ansible.builtin.stat:
+    path: "{{ control_plane_token_file }}"
+  register: control_plane_token_stat
+
+- name: Read the saved Hatchet token
+  ansible.builtin.slurp:
+    src: "{{ control_plane_token_file }}"
+  register: control_plane_token_slurp
+  when: control_plane_token_stat.stat.exists
+  no_log: true
+
+- name: Remember the saved Hatchet token
+  ansible.builtin.set_fact:
+    control_plane_hatchet_token: "{{ control_plane_token_slurp.content | b64decode | trim }}"
+  when: control_plane_token_stat.stat.exists
+  no_log: true
+
+- name: Write the environment file
+  ansible.builtin.include_tasks: env.yml
+
+- name: Start the infrastructure
+  community.docker.docker_compose_v2:
+    project_src: "{{ control_plane_deploy_dir }}"
+    files:
+      - compose.prod.yml
+    state: present
+    pull: "{{ control_plane_pull }}"
+    build: never
+    wait: true
+
+- name: Create a Hatchet token on the first run
+  when: not control_plane_token_stat.stat.exists
+  block:
+    - name: Create the Hatchet API token
+      ansible.builtin.command:
+        cmd: ./scripts/create-hatchet-token.sh
+        chdir: "{{ control_plane_deploy_dir }}"
+      environment:
+        COMPOSE_FILE: compose.prod.yml
+      register: control_plane_token_created
+      changed_when: true
+      no_log: true
+
+    - name: Save the Hatchet token
+      ansible.builtin.copy:
+        content: "{{ control_plane_token_created.stdout | trim }}\n"
+        dest: "{{ control_plane_token_file }}"
+        mode: "0600"
+      no_log: true
+
+    - name: Remember the new Hatchet token
+      ansible.builtin.set_fact:
+        control_plane_hatchet_token: "{{ control_plane_token_created.stdout | trim }}"
+      no_log: true
+
+    - name: Rewrite the environment file with the token
+      ansible.builtin.include_tasks: env.yml
+
+- name: Start the falcoria and asm services
+  community.docker.docker_compose_v2:
+    project_src: "{{ control_plane_deploy_dir }}"
+    files:
+      - compose.prod.yml
+    profiles:
+      - main
+    state: present
+    pull: "{{ control_plane_pull }}"
+    build: never
+    wait: true

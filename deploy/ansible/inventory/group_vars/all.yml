@@ -1,0 +1,20 @@
+---
+# Settings shared by every host.
+
+# Repository root on the machine that runs Ansible; the compose files are copied from it.
+falcoria_repo_root: "{{ playbook_dir | dirname | dirname | dirname }}"
+
+# Images are pulled from ghcr.io/<ghcr_owner>/<image>:<version>. The two systems are
+# released separately, so each has its own version (tags falcoria-vX.Y.Z and asm-vX.Y.Z).
+ghcr_owner: "replace-with-github-owner"
+falcoria_version: "0.0.1"
+asm_version: "0.0.1"
+
+# Hatchet engine endpoint shared by the main server and the workers.
+hatchet_grpc_port: 8443
+# Name every client checks the engine certificate against (not the server address).
+hatchet_engine_name: hatchet-engine
+# File on the main server that holds the engine API token.
+hatchet_token_file: /opt/falcoria/deploy/.hatchet-token
+# Where the worker certificates are fetched to, on the machine that runs Ansible.
+pki_local_dir: "{{ playbook_dir }}/../.pki"

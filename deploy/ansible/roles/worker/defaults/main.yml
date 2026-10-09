@@ -1,0 +1,10 @@
+---
+worker_dir: /opt/falcoria/worker
+# "always" pulls on every run; use "missing" when the images were loaded by hand.
+worker_pull: always
+# nmap or nuclei; set per inventory group.
+worker_kind: nmap
+# Group of the application containers' user: the client key must be readable by it.
+worker_uid: "1000"
+# The engine runs on the first host of the control_plane group.
+worker_engine_host: "{{ hostvars[groups['control_plane'][0]]['ansible_host'] }}"

@@ -1,0 +1,13 @@
+---
+- name: Deploy the remote workers
+  hosts: nmap_workers:nuclei_workers
+  become: true
+  vars_files:
+    - ../inventory/group_vars/vault.yml
+  roles:
+    - role: common
+      tags: [common]
+    - role: docker
+      tags: [docker]
+    - role: worker
+      tags: [worker]

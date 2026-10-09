@@ -1,0 +1,17 @@
+{{ ansible_managed | comment }}
+name: falcoria-nmap-worker
+
+services:
+  scanner:
+    image: ghcr.io/{{ ghcr_owner }}/falcoria-worker:{{ falcoria_version }}
+    command: ["falcoria-scanner"]
+    restart: unless-stopped
+    # Host network and raw-socket capabilities: nmap sends its own packets.
+    network_mode: host
+    cap_add: [NET_RAW, NET_ADMIN]
+    env_file: [.env]
+    volumes:
+      - ./certs:/certs:ro
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }

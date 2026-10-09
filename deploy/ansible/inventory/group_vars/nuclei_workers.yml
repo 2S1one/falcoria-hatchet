@@ -1,0 +1,3 @@
+---
+# Machines that run the httpx and nuclei workers of asm.
+worker_kind: nuclei

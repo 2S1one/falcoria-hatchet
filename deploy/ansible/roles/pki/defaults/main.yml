@@ -1,0 +1,9 @@
+---
+# Certificate authority and certificates for the mutual TLS between the Hatchet engine and its
+# clients. Certificates are not rotated, so they are issued for ten years.
+pki_dir: /opt/falcoria/deploy/certs
+pki_validity: "+3650d"
+pki_engine_name: "{{ hatchet_engine_name }}"
+# Group of the application containers' user: the client key must be readable by it.
+pki_client_uid: "1000"
+pki_worker_hosts: "{{ (groups['nmap_workers'] | default([])) + (groups['nuclei_workers'] | default([])) }}"

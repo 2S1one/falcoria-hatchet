@@ -1,0 +1,3 @@
+---
+# Main server: Hatchet engine, databases, falcoria and asm services.
+control_plane_base_dir: /opt/falcoria

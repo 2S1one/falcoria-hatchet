@@ -1,0 +1,6 @@
+---
+- name: Deploy the main server
+  ansible.builtin.import_playbook: control_plane.yml
+
+- name: Deploy the remote workers
+  ansible.builtin.import_playbook: workers.yml

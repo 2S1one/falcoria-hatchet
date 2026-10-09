@@ -1,0 +1,18 @@
+---
+control_plane_base_dir: /opt/falcoria
+control_plane_deploy_dir: "{{ control_plane_base_dir }}/deploy"
+# "always" pulls on every run; use "missing" when the images were loaded by hand.
+control_plane_pull: always
+# Address and host port the engine gRPC endpoint is published on. It requires a client
+# certificate, so it may face the internet (port: hatchet_grpc_port, 8443 keeps 443 free).
+control_plane_grpc_bind: "0.0.0.0"
+control_plane_token_file: "{{ hatchet_token_file }}"
+
+# Files copied from the repository, keeping the layout the Compose "include" paths expect.
+control_plane_files:
+  - { src: deploy/compose.infra.yml, dest: deploy/compose.infra.yml, mode: "0644" }
+  - { src: deploy/compose.prod.yml, dest: deploy/compose.prod.yml, mode: "0644" }
+  - { src: deploy/postgres-init/01-create-databases.sh, dest: deploy/postgres-init/01-create-databases.sh, mode: "0755" }
+  - { src: deploy/scripts/create-hatchet-token.sh, dest: deploy/scripts/create-hatchet-token.sh, mode: "0755" }
+  - { src: falcoria/compose.yml, dest: falcoria/compose.yml, mode: "0644" }
+  - { src: asm/compose.yml, dest: asm/compose.yml, mode: "0644" }

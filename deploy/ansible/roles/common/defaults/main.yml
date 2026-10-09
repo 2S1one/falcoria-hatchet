@@ -1,0 +1,7 @@
+---
+common_timezone: Etc/UTC
+common_packages:
+  - ca-certificates
+  - curl
+  - jq
+  - htop
