@@ -13,6 +13,7 @@ from asm_core.api.nuclei import router as router_module
 from asm_core.api.nuclei.router import get_nuclei_starter, router
 from asm_core.api.nuclei.schemas import NucleiFindingOut
 from asm_core.api.nuclei.service import list_findings
+from asm_core.api.security import require_project_access
 from asm_core.db.database import get_session
 from asm_core.persistence.nuclei import reconcile_target_findings
 
@@ -38,6 +39,7 @@ def client(starter: _Starter) -> TestClient:
     app = FastAPI()
     app.include_router(router)
     app.dependency_overrides[get_session] = lambda: None
+    app.dependency_overrides[require_project_access] = lambda: None
     app.dependency_overrides[get_nuclei_starter] = lambda: starter
     return TestClient(app)
 

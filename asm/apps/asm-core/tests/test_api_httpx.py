@@ -23,6 +23,7 @@ from asm_core.api.httpx import router as router_module
 from asm_core.api.httpx.router import get_httpx_starter, router
 from asm_core.api.httpx.schemas import HttpxResultOut
 from asm_core.api.httpx.service import list_results
+from asm_core.api.security import require_project_access
 from asm_core.chain import run_httpx_store
 from asm_core.db.database import get_session
 from asm_core.persistence.httpx import save_httpx_result
@@ -49,6 +50,7 @@ def client(starter: _Starter) -> TestClient:
     app = FastAPI()
     app.include_router(router)
     app.dependency_overrides[get_session] = lambda: None
+    app.dependency_overrides[require_project_access] = lambda: None
     app.dependency_overrides[get_httpx_starter] = lambda: starter
     return TestClient(app)
 
