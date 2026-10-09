@@ -5,8 +5,9 @@ agent can follow it without prior context. Commands run from `deploy/ansible/` u
 The test stack on one machine is described in `deploy/README.md`; the container background is in
 `docs/CONTAINERS.md`.
 
-Status: deployed and checked once on three DigitalOcean machines with one small scan. Images were
-loaded by hand, not pulled from GHCR (see "Not verified").
+Status: deployed from scratch and checked on DigitalOcean machines (a control host and two workers),
+with images pulled from GHCR and one small scan run through the remote workers. See "Not verified"
+for what that did not cover.
 
 ## 1. What gets deployed
 
@@ -73,8 +74,7 @@ is no reverse proxy: nothing but SSH and the gRPC port faces the internet.
    `vault.yml` and `.vault-pass` are ignored by git. Supply the password with `--ask-vault-pass`, or
    `ANSIBLE_VAULT_PASSWORD_FILE=$PWD/.vault-pass` (`ansible-lint` also needs it, because it
    syntax-checks the playbooks).
-4. **Images:** either publish them (tags `falcoria-vX.Y.Z` / `asm-vX.Y.Z` start the workflows, see
-   "Not verified"), or move locally built ones:
+4. **Images:** either publish them (see "Publishing the images" below), or move locally built ones:
    ```sh
    # from the repo root: build with the test stack, then retag and copy
    docker compose -f deploy/compose.test.yml --profile falcoria --profile asm build
@@ -190,12 +190,31 @@ a certificate from another CA, no TLS, and a valid certificate with a wrong toke
   permissions are wrong (the message does not say which). `TLS handshake error ... first record does
   not look like a TLS handshake` in the engine log is a client still using plain gRPC.
 
-## 8. Not verified
+## 8. Publishing the images
 
-- Publishing the images to GHCR: the workflows (`falcoria-publish.yml`, `asm-publish.yml`) never ran,
-  so the registry tag format (expected `X.Y.Z` without the `falcoria-v` / `asm-v` prefix) and the
-  version expression are unconfirmed. GHCR packages are private by default and must be made public
-  before a machine can pull them without a login (confirm in GitHub's documentation first).
-- The `docker` role on a clean Ubuntu machine; the whole stack under load; database backups;
-  monitoring; certificate rotation and revocation; the production stack on more than one worker per
-  group.
+Pushing a git tag `falcoria-vX.Y.Z` or `asm-vX.Y.Z` on the commit to release starts
+`falcoria-publish.yml` or `asm-publish.yml`. Each builds its images and pushes them to
+`ghcr.io/<owner>/<image>` (owner in lower case) with the tags `X.Y.Z`, `X.Y`, `latest` and
+`sha-<commit>`; the version has no `falcoria-v` / `asm-v` prefix, and `X.Y.Z` is what
+`falcoria_version` / `asm_version` must hold. Run it from the commit that is already on `main`.
+
+- **Name clash.** The workflow authenticates with the repository's `GITHUB_TOKEN`. If a package with
+  the same name already exists in the account and was created by another repository, the push fails
+  with `permission_denied: write_package`. Either delete the old package or give this repository
+  write access to it (package settings, "Manage Actions access"). The three `falcoria-*` names had
+  been used by an earlier project and had to be deleted.
+- **Visibility.** The packages created by these workflows could be pulled without logging in. If a
+  deployment has to log in to pull, check the package visibility first.
+- **Check the result** without credentials: request an anonymous registry token for
+  `repository:<owner>/<image>:pull` from `https://ghcr.io/token` and list
+  `https://ghcr.io/v2/<owner>/<image>/tags/list`. A missing package returns no token.
+- Re-run a failed publish with `gh run rerun <run-id> --failed`.
+
+## 9. Not verified
+
+- The `docker` role on a machine without Docker: every machine used so far came with Docker
+  installed, so the role only skipped its install block there.
+- The whole stack under load; database backups; monitoring; certificate rotation and revocation;
+  the production stack on more than one worker per group.
+- A deployment where the control host was restarted or its volumes were removed (see "Operate" for
+  the intended steps).
