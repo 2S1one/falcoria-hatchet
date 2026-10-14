@@ -4,6 +4,9 @@ worker_dir: /opt/falcoria/worker
 worker_pull: always
 # nmap or nuclei; set per inventory group.
 worker_kind: nmap
+# nuclei machines only: targets per nuclei process, and how long a partial batch waits to start.
+worker_nuclei_batch_size: 25
+worker_nuclei_batch_interval_seconds: 30
 # Group of the application containers' user: the client key must be readable by it.
 worker_uid: "1000"
 # The engine runs on the first host of the control_plane group.

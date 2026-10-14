@@ -62,6 +62,13 @@ is no reverse proxy: nothing but SSH and the gRPC port faces the internet.
    becomes the name of its certificate (`<name>.crt`). `hosts.ini` is ignored by git.
 2. **Shared variables:** edit `inventory/group_vars/all.yml`: `ghcr_owner`, `falcoria_version`,
    `asm_version`. Nothing else there normally changes.
+   **nuclei settings:** the defaults sit in `roles/control_plane/defaults/main.yml`
+   (`control_plane_nuclei_params`, `control_plane_nuclei_timeout_seconds`: the light development setting, 20 requests per
+   second, 600 s per batch) and `roles/worker/defaults/main.yml` (`worker_nuclei_batch_size`,
+   `worker_nuclei_batch_interval_seconds`: 25 and 30). Change them for a real scan with `-e` or in the
+   inventory; the containers read them at start, so a changed value needs the playbook run and no new
+   image. Production does not use the nuclei setting of `asm/compose.yml`: `compose.prod.yml`
+   replaces it with the value Ansible writes to `deploy/.env`.
 3. **Secrets:** `cp inventory/group_vars/vault.example.yml inventory/group_vars/vault.yml`, fill in
    with random values, encrypt. Use letters and digits only: the values end up in a Compose `.env`
    file where `$` and quotes have meaning. The four `vault_scanledger_*_token` values must differ.

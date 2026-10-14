@@ -109,6 +109,9 @@ services:
     <<: *long-running
     environment:
       <<: *hatchet-mtls-client
+      # Written into deploy/.env by Ansible; replaces the light development value of asm/compose.yml.
+      ASM_CORE_CHAIN_NUCLEI_PARAMS: ${ASM_CORE_CHAIN_NUCLEI_PARAMS:?}
+      ASM_CORE_CHAIN_NUCLEI_TIMEOUT_SECONDS: ${ASM_CORE_CHAIN_NUCLEI_TIMEOUT_SECONDS:-600}
     volumes:
       - *client-certs
     image: ghcr.io/${GHCR_OWNER:?}/asm-core:${ASM_VERSION:?}
