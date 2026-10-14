@@ -69,6 +69,7 @@ async def test_non_http_target_skips_nuclei() -> None:
         recorder.save_httpx,
         recorder.start_nuclei,
         NucleiScanParams(),
+        600.0,
     )
 
     assert outcome.status == ChainStatus.NOT_HTTP
@@ -87,6 +88,7 @@ async def test_http_target_starts_nuclei_on_its_hostname_and_port() -> None:
         recorder.save_httpx,
         recorder.start_nuclei,
         NucleiScanParams(),
+        600.0,
     )
 
     assert outcome.status == ChainStatus.NUCLEI_STARTED
@@ -106,6 +108,7 @@ async def test_nuclei_falls_back_to_the_ip_without_a_hostname() -> None:
         recorder.save_httpx,
         recorder.start_nuclei,
         NucleiScanParams(),
+        600.0,
     )
 
     assert recorder.nuclei_tasks[0].target.host == "192.0.2.1"
@@ -116,7 +119,22 @@ async def test_nuclei_is_started_with_the_given_params() -> None:
     params = NucleiScanParams(templates=["/some/templates"], rate_limit=20)
 
     await run_chain(
-        _task(None), recorder.scan_httpx, recorder.save_httpx, recorder.start_nuclei, params
+        _task(None), recorder.scan_httpx, recorder.save_httpx, recorder.start_nuclei, params, 600.0
     )
 
     assert recorder.nuclei_tasks[0].params == params
+
+
+async def test_nuclei_is_started_with_the_given_timeout() -> None:
+    recorder = _Recorder(http=True)
+
+    await run_chain(
+        _task(None),
+        recorder.scan_httpx,
+        recorder.save_httpx,
+        recorder.start_nuclei,
+        NucleiScanParams(),
+        1800.0,
+    )
+
+    assert recorder.nuclei_tasks[0].timeout == 1800.0

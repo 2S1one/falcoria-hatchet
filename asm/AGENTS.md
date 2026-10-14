@@ -55,7 +55,9 @@ apps/asm-core/             import asm_core          worker, bridge, FastAPI API,
 Environment variables: `HATCHET_CLIENT_TOKEN`, `HATCHET_CLIENT_TLS_STRATEGY`,
 `ASM_CORE_DB_{HOST,PORT,USER,PASSWORD,NAME}`, `SCANLEDGER_API_URL`, `SCANLEDGER_ASM_TOKEN`,
 `ASM_CORE_CHAIN_NUCLEI_PARAMS` (JSON `NucleiScanParams`; default is all templates at 150
-requests per second), `NUCLEI_PATH`.
+requests per second), `ASM_CORE_CHAIN_NUCLEI_TIMEOUT_SECONDS` (time limit of one nuclei batch;
+default 600), `NUCLEI_PATH`, `NUCLEI_BATCH_SIZE` (default 25) and `NUCLEI_BATCH_INTERVAL_SECONDS`
+(default 30). The batch variables are read at worker start: restart the container, no rebuild.
 
 Tests set a placeholder Hatchet JWT in `apps/asm-core/tests/conftest.py`, because the SDK
 parses the token when `Hatchet()` is created at import.

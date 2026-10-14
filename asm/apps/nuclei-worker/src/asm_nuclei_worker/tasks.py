@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from hatchet_sdk import Context, Hatchet
 from hatchet_sdk.runnables.types import BatchMemberId
 
@@ -9,8 +11,6 @@ from asm_nuclei_worker.batch import run_batch
 from asm_nuclei_worker.config import settings
 from asm_nuclei_worker.constants import (
     NUCLEI_BATCH_GROUP_KEY,
-    NUCLEI_BATCH_INTERVAL,
-    NUCLEI_BATCH_SIZE,
     NUCLEI_EXECUTION_TIMEOUT,
     NUCLEI_PERSIST_RETRIES,
     NUCLEI_SCHEDULE_TIMEOUT,
@@ -30,8 +30,8 @@ nuclei_scan = hatchet.workflow(name=NUCLEI_SCAN_WORKFLOW_NAME, input_validator=N
 
 
 @nuclei_scan.batch_task(
-    batch_max_size=NUCLEI_BATCH_SIZE,
-    batch_max_interval=NUCLEI_BATCH_INTERVAL,
+    batch_max_size=settings.batch_size,
+    batch_max_interval=timedelta(seconds=settings.batch_interval_seconds),
     batch_group_key=NUCLEI_BATCH_GROUP_KEY,
     execution_timeout=NUCLEI_EXECUTION_TIMEOUT,
     schedule_timeout=NUCLEI_SCHEDULE_TIMEOUT,

@@ -9,8 +9,8 @@ instant or sleeping handlers stood in for nuclei; no real nuclei run is behind t
 
 - One nuclei process at a time per worker: it is tuned for full speed and uses the machine's whole
   network bandwidth. Hence `slots=1` on the nuclei worker.
-- A batch is cut at 25 tasks of one group or when the group's interval (30 s, placeholder) runs
-  out. A group is one `batch_key`: project, scan, scan params, timeout.
+- A batch is cut at `NUCLEI_BATCH_SIZE` tasks of one group (default 25) or when the group's interval
+  (`NUCLEI_BATCH_INTERVAL_SECONDS`, default 30 s) runs out. A group is one `batch_key`: project, scan, scan params, timeout.
 
 ## How the engine times a group
 

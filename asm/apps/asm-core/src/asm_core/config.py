@@ -48,11 +48,15 @@ class ChainSettings(BaseSettings):
     Env `ASM_CORE_CHAIN_NUCLEI_PARAMS` takes a JSON object of `NucleiScanParams` fields, e.g.
     `{"templates": ["/opt/nuclei-templates/http/technologies"], "rate_limit": 20}`; unset means nuclei's
     own defaults.
+
+    Env `ASM_CORE_CHAIN_NUCLEI_TIMEOUT_SECONDS` is the time limit of one nuclei batch (one nuclei
+    process); a batch that runs longer is killed and answers `ERROR` for all its targets.
     """
 
     model_config = SettingsConfigDict(env_prefix="ASM_CORE_CHAIN_", extra="ignore")
 
     nuclei_params: NucleiScanParams = Field(default_factory=NucleiScanParams)
+    nuclei_timeout_seconds: float = Field(default=600.0, gt=0, le=86400)
 
 
 @lru_cache
