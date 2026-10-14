@@ -8,7 +8,7 @@ falcoria_repo_root: "{{ playbook_dir | dirname | dirname | dirname }}"
 # released separately, so each has its own version (tags falcoria-vX.Y.Z and asm-vX.Y.Z).
 ghcr_owner: "replace-with-github-owner"
 falcoria_version: "0.0.1"
-asm_version: "0.0.1"
+asm_version: "0.0.2"
 
 # Hatchet engine endpoint shared by the main server and the workers.
 hatchet_grpc_port: 8443

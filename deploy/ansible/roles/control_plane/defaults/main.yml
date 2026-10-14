@@ -6,6 +6,14 @@ control_plane_pull: always
 # Address and host port the engine gRPC endpoint is published on. It requires a client
 # certificate, so it may face the internet (port: hatchet_grpc_port, 8443 keeps 443 free).
 control_plane_grpc_bind: "0.0.0.0"
+# nuclei parameters of the httpx-then-nuclei chain (fields of NucleiScanParams, see
+# asm/packages/asm-contracts/src/asm_contracts/nuclei.py) and the time limit of one nuclei batch.
+# The default is the light development setting: override it (-e or inventory) for a real scan.
+control_plane_nuclei_params:
+  templates: ["/home/appuser/nuclei-templates/http/technologies"]
+  protocol_types: ["http"]
+  rate_limit: 20
+control_plane_nuclei_timeout_seconds: 600
 control_plane_token_file: "{{ hatchet_token_file }}"
 
 # Files copied from the repository, keeping the layout the Compose "include" paths expect.
