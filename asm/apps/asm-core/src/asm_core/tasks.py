@@ -60,12 +60,14 @@ async def _start_nuclei(task: NucleiScanTask) -> object:
 )
 async def httpx_then_nuclei(task: HttpxThenNucleiTask, ctx: Context) -> ChainOutcome:
     """Runs httpx against one target, stores the probe, and starts nuclei if it speaks HTTP."""
+    chain_settings = get_chain_settings()
     return await run_chain(
         task,
         _httpx_scan.aio_run,
         _save_httpx,
         _start_nuclei,
-        get_chain_settings().nuclei_params,
+        chain_settings.nuclei_params,
+        chain_settings.nuclei_timeout_seconds,
     )
 
 

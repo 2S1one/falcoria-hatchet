@@ -16,11 +16,12 @@ async def run_chain(
     save_httpx: Callable[[HttpxThenNucleiTask, HttpxScanResult], Awaitable[None]],
     start_nuclei: Callable[[NucleiScanTask], Awaitable[object]],
     nuclei_params: NucleiScanParams,
+    nuclei_timeout: float,
 ) -> ChainOutcome:
     """Probes the target with httpx, stores the probe, and starts nuclei without waiting if it speaks HTTP.
 
     The httpx scan params are the defaults; nuclei scans `hostname` when known, else `ip`, on the same port,
-    with `nuclei_params`.
+    with `nuclei_params` and a batch time limit of `nuclei_timeout` seconds.
     The probe is stored for every target, so a target that is not HTTP still has a recorded outcome.
     """
     result = await scan_httpx(HttpxScanTask(target=task.target, params=HttpxScanParams()))
@@ -34,6 +35,7 @@ async def run_chain(
             scan_id=task.scan_id,
             target=NucleiTarget(host=task.target.hostname or task.target.ip, port=task.target.port),
             params=nuclei_params,
+            timeout=nuclei_timeout,
         )
     )
     return ChainOutcome(target=task.target, status=ChainStatus.NUCLEI_STARTED)
